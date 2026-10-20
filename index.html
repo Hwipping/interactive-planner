@@ -475,7 +475,58 @@
         box-shadow: none;
     }
     body.remote-app.editing .toolbar .btn-action:hover { background: #5c636a; transform: none; }
-    body.remote-app.editing .toolbar .btn-lock[aria-pressed="true"] { background: #343a40; border-color: #adb5bd; }
+    body.remote-app.editing .toolbar .editor-lock-switch {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        flex: 0 0 80px;
+        width: 80px;
+        height: 42px;
+        min-height: 42px;
+        padding: 4px;
+        overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, .08);
+        border-radius: 999px;
+        background: #f08c46;
+        color: #fff;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, .16), 0 1px 2px rgba(0, 0, 0, .12);
+        cursor: pointer;
+        transition: background-color .18s ease, box-shadow .18s ease;
+    }
+    body.remote-app.editing .toolbar .editor-lock-switch[aria-checked="true"] { background: #37b679; }
+    body.remote-app.editing .toolbar .editor-lock-switch:hover { filter: brightness(.97); }
+    .editor-lock-switch .lock-switch-icon {
+        position: absolute;
+        z-index: 1;
+        top: 50%;
+        width: 20px;
+        height: 20px;
+        color: #fff;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-50%);
+        transition: opacity .14s ease;
+    }
+    .editor-lock-switch .lock-switch-icon--open { left: 10px; }
+    .editor-lock-switch .lock-switch-icon--closed { right: 10px; }
+    .editor-lock-switch[aria-checked="false"] .lock-switch-icon--closed,
+    .editor-lock-switch[aria-checked="true"] .lock-switch-icon--open { opacity: 1; }
+    .editor-lock-switch .lock-switch-thumb {
+        position: absolute;
+        z-index: 2;
+        top: 3px;
+        left: 3px;
+        width: 34px;
+        height: 34px;
+        border: 1px solid rgba(0, 0, 0, .08);
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, .2);
+        transition: transform .18s ease;
+    }
+    .editor-lock-switch[aria-checked="true"] .lock-switch-thumb { transform: translateX(40px); }
+    .editor-lock-switch:focus-visible { outline: 3px solid #74c0fc; outline-offset: 3px; }
     body.remote-app.editing.editor-locked .a4-page { cursor: not-allowed; }
     body.remote-app.editing .toolbar .toolbar-icon {
         width: 42px;
@@ -630,7 +681,11 @@
         </div>
         <div class="toolbar-account">
             <button class="btn-action btn-password" onclick="showChangePassword()">비밀번호 변경</button>
-            <button class="btn-action btn-lock" id="editor_lock_toggle" type="button" onclick="toggleEditorLock()" aria-pressed="false" title="편집 잠금">🔒 잠금</button>
+            <button class="editor-lock-switch" id="editor_lock_toggle" type="button" role="switch" onclick="toggleEditorLock()" aria-checked="false" aria-label="편집 잠금" title="기획안 편집을 잠급니다.">
+                <svg class="lock-switch-icon lock-switch-icon--open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.5-2"/><circle cx="12" cy="15" r="1"/><path d="M12 16v2"/></svg>
+                <span class="lock-switch-thumb" aria-hidden="true"></span>
+                <svg class="lock-switch-icon lock-switch-icon--closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1"/><path d="M12 16v2"/></svg>
+            </button>
         </div>
     </div>
 
@@ -1744,8 +1799,8 @@
             if (!editor || !toggle) return;
             editor.inert = Boolean(remoteState.locked);
             document.body.classList.toggle('editor-locked', Boolean(remoteState.locked));
-            toggle.setAttribute('aria-pressed', String(Boolean(remoteState.locked)));
-            toggle.textContent = remoteState.locked ? '🔓 잠금 해제' : '🔒 잠금';
+            toggle.setAttribute('aria-checked', String(Boolean(remoteState.locked)));
+            toggle.setAttribute('aria-label', remoteState.locked ? '편집 잠금 해제' : '편집 잠금');
             toggle.title = remoteState.locked ? '편집 잠금을 해제합니다.' : '기획안 편집을 잠급니다.';
         }
 
