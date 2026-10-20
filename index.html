@@ -431,6 +431,22 @@
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
     .modal-close { position: absolute; top: 16px; right: 18px; border: 0; background: transparent; color: #868e96; font-size: 1.5rem; cursor: pointer; }
     .modal-message { min-height: 20px; margin-top: 10px; color: #e85959; font-size: .82rem; }
+    body.remote-app.editing .toolbar .btn-delete-project {
+        display: inline-flex;
+        width: 42px;
+        height: 42px;
+        min-height: 42px;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: 1px solid rgba(255,255,255,.16);
+        border-radius: 50%;
+        background: #dc3545;
+        color: #fff;
+        box-shadow: 0 2px 7px rgba(0,0,0,.18);
+    }
+    body.remote-app.editing .toolbar .btn-delete-project:hover { background: #c82333; transform: none; }
+    .btn-delete-project svg { width: 19px; height: 19px; }
     .lightbox { position: fixed; inset: 0; z-index: 3200; display: flex; align-items: center; justify-content: center; padding: 30px; background: rgba(0,0,0,.78); }
     .lightbox[hidden] { display: none; }
     .lightbox img { max-width: min(1200px, 92vw); max-height: 88vh; object-fit: contain; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,.45); }
@@ -685,6 +701,9 @@
                 <svg class="lock-switch-icon lock-switch-icon--open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.5-2"/><circle cx="12" cy="15" r="1"/><path d="M12 16v2"/></svg>
                 <span class="lock-switch-thumb" aria-hidden="true"></span>
                 <svg class="lock-switch-icon lock-switch-icon--closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1"/><path d="M12 16v2"/></svg>
+            </button>
+            <button class="btn-action btn-delete-project" type="button" onclick="showDeleteProjectModal()" aria-label="기획안 삭제" title="기획안 삭제">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>
             </button>
         </div>
     </div>
@@ -1529,7 +1548,13 @@
                 grid.appendChild(empty);
                 return;
             }
-            projects.forEach((project) => {
+            const nameThenTitle = new Intl.Collator('ko-KR', { numeric: true, sensitivity: 'base' });
+            const sortedProjects = [...projects].sort((first, second) =>
+                nameThenTitle.compare(first.student_name || '', second.student_name || '') ||
+                nameThenTitle.compare(first.title || '', second.title || '') ||
+                String(first.id || '').localeCompare(String(second.id || ''))
+            );
+            sortedProjects.forEach((project) => {
                 const card = document.createElement('button');
                 card.type = 'button';
                 card.className = 'project-card';
@@ -1666,6 +1691,19 @@
                 </form>`);
         }
 
+        function showDeleteProjectModal() {
+            if (!remoteState.project || !remoteState.token) return;
+            showModal(`
+                <h2 id="modal_title">기획안을 삭제할까요?</h2>
+                <p><strong>${escapeHtml(remoteState.project.student_name || '이 기획안')}</strong> · ${escapeHtml(remoteState.project.title || '제목 없음')}<br>삭제하면 작성 내용과 첨부 이미지가 모두 영구 삭제됩니다. 저장되지 않은 변경도 함께 삭제됩니다.</p>
+                <form data-modal-mode="delete-project" onsubmit="handleModalSubmit(event)">
+                    <label for="modal_delete_password">기획안 비밀번호 또는 마스터 비밀번호</label>
+                    <input id="modal_delete_password" type="password" required autocomplete="current-password" placeholder="비밀번호 다시 입력">
+                    <div class="modal-message" data-modal-message></div>
+                    <div class="modal-actions"><button class="app-button ghost" type="button" onclick="closeModal()">취소</button><button class="app-button danger" type="submit">영구 삭제</button></div>
+                </form>`);
+        }
+
         async function handleModalSubmit(event) {
             event.preventDefault();
             const form = event.currentTarget;
@@ -1713,6 +1751,30 @@
                     }, remoteState.token);
                     closeModal();
                     setSaveStatus('학생 비밀번호를 초기화했습니다.');
+                    return;
+                } else if (mode === 'delete-project') {
+                    const projectId = remoteState.project?.id;
+                    if (!projectId || !remoteState.token) throw new Error('기획안 삭제 권한이 없습니다. 다시 열어 주세요.');
+
+                    clearTimeout(remoteState.saveTimer);
+                    if (remoteState.saving) await remoteState.saveTask;
+
+                    await remoteApi('delete-project', {
+                        projectId,
+                        password: document.getElementById('modal_delete_password').value
+                    }, remoteState.token);
+
+                    forgetOwnerSession(projectId);
+                    remoteState.project = null;
+                    remoteState.assetByKey = {};
+                    remoteState.revision = remoteState.savedRevision = 0;
+                    remoteState.locked = false;
+                    if (!remoteState.admin) remoteState.token = '';
+                    document.body.classList.remove('editing', 'editor-locked');
+                    closeModal();
+                    await loadHome();
+                    document.querySelector('.home-brand h1')?.focus();
+                    setSaveStatus('기획안을 삭제했습니다.');
                     return;
                 }
             } catch (error) {
