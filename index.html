@@ -68,6 +68,7 @@
     .btn-download-palette:hover { background: #339af0; }
 
     h1 { text-align: center; color: #25282b; border-bottom: 2px solid #25282b; padding-bottom: 12px; margin: 0 0 28px; font-size: 24px; letter-spacing: -.02em; }
+    .document-meta { margin: -18px 0 24px; color: #868e96; font-size: .9rem; text-align: center; }
     h2 { background-color: #343a40; color: white; padding: 11px 15px; font-size: 1.05rem; margin: 0 0 16px; border-radius: 7px; letter-spacing: -.01em; }
 
     .section-subtitle {
@@ -419,8 +420,6 @@
     .app-button.danger { background: #e85959; }
     .app-button.small { padding: 7px 10px; font-size: .78rem; }
     .remote-project-label { max-width: 230px; overflow: hidden; color: #dee2e6; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-    .remote-status-button { background: #f08c46; }
-    .remote-status-button.complete { background: #37b679; }
     .app-modal { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(28, 33, 38, .45); }
     .app-modal[hidden] { display: none; }
     .modal-card { width: min(440px, 100%); position: relative; padding: 26px; border-radius: 16px; background: #fff; box-shadow: 0 22px 55px rgba(0,0,0,.2); }
@@ -450,7 +449,7 @@
     /* 편집 화면 상단바 */
     body.remote-app.editing .toolbar {
         display: grid;
-        grid-template-columns: auto auto minmax(0, 1fr);
+        grid-template-columns: auto auto minmax(0, 1fr) auto;
         align-items: center;
         gap: 10px;
         padding: 10px 16px;
@@ -460,11 +459,15 @@
     .toolbar-group { display: flex; align-items: center; gap: 8px; }
     .toolbar-actions { padding-left: 10px; border-left: 1px solid rgba(255,255,255,.14); }
     .toolbar-context { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
+    .toolbar-account { display: flex; align-items: center; justify-content: flex-end; }
+    .remote-status-label { display: inline-flex; align-items: center; gap: 7px; color: #e9ecef; font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .remote-status-dot { width: 10px; height: 10px; flex: 0 0 auto; border-radius: 50%; background: #f08c46; box-shadow: 0 0 0 3px rgba(240, 140, 70, .15); }
+    .remote-status-dot.complete { background: #37b679; box-shadow: 0 0 0 3px rgba(55, 182, 121, .15); }
     body.remote-app.editing .toolbar .btn-action {
         min-height: 38px;
         padding: 8px 13px;
         border: 1px solid rgba(255,255,255,.12);
-        border-radius: 7px;
+        border-radius: 999px;
         background: #495057;
         color: #f8f9fa;
         font-size: 13px;
@@ -478,9 +481,9 @@
         line-height: 1;
         background: transparent;
         border-color: transparent;
+        border-radius: 50%;
     }
     body.remote-app.editing .toolbar .toolbar-icon:hover { background: #343a40; }
-    body.remote-app.editing .toolbar .remote-status-button.complete { background: #527864; }
     body.remote-app.editing .toolbar .save-status { min-width: 0; color: #ced4da; white-space: nowrap; }
     .section-subtitle-actions,
     .resource-links { display: inline-flex; align-items: center; gap: 6px; }
@@ -502,11 +505,14 @@
         transform: translateY(-1px);
     }
     .resource-links img { width: 16px; height: 16px; object-fit: contain; border-radius: 3px; }
+    .moodboard-links .resource-link-special { margin-right: 8px; }
+    .resource-links-divider { width: 1px; height: 20px; margin-right: 2px; background: #d7dce0; }
     .section-subtitle-actions .btn-download-palette { margin-left: 3px; }
     @media (max-width: 900px) {
         body.remote-app.editing .toolbar { grid-template-columns: auto 1fr; }
         .toolbar-context { grid-column: 1 / -1; justify-content: center; }
         .toolbar-actions { flex-wrap: wrap; border-left: 0; padding-left: 0; }
+        .toolbar-account { grid-column: 1 / -1; justify-content: flex-end; }
     }
 </style>
 </head>
@@ -544,17 +550,19 @@
         <div class="toolbar-group toolbar-actions">
             <button class="btn-action btn-save-html" onclick="saveRemoteProject()" title="현재 기획안을 Supabase에 저장합니다.">저장</button>
             <button class="btn-action btn-print" onclick="printDocument()" title="브라우저 인쇄 설정에서 머리말 및 꼬리말 해제를 권장합니다.">PDF 저장</button>
-            <button id="status_button" class="btn-action remote-status-button" onclick="toggleProjectStatus()">작업중</button>
-            <button class="btn-action btn-reset" onclick="showChangePassword()">비밀번호 변경</button>
         </div>
         <div class="toolbar-context">
-            <span id="remote_project_label" class="remote-project-label"></span>
+            <span class="remote-status-label" role="status" aria-live="polite"><span id="remote_status_dot" class="remote-status-dot working" aria-hidden="true"></span><span id="remote_status_text">작업중</span></span>
             <span class="save-status" id="save_status" role="status" aria-live="polite">저장본 파일로 작업하세요.</span>
+        </div>
+        <div class="toolbar-account">
+            <button class="btn-action btn-password" onclick="showChangePassword()">비밀번호 변경</button>
         </div>
     </div>
 
     <div class="a4-page">
         <h1>[영상 제작 실습 기획안] Production Plan</h1>
+        <div id="document_meta" class="document-meta" hidden></div>
 
         <!-- 1. 기본 정보 -->
         <section class="print-section">
@@ -563,13 +571,18 @@
         <table>
             <tr>
                 <th>제작자</th>
-                <td><input type="text" id="creator" placeholder="이름 입력" oninput="autoSave()"></td>
+                <td><input type="text" id="creator" placeholder="이름 입력" oninput="handlePlannerMetaInput()"></td>
+                <th>기획안 제목</th>
+                <td><input type="text" id="planner_title" placeholder="기획안 제목 입력" oninput="handlePlannerMetaInput()"></td>
+            </tr>
+            <tr>
                 <th>작성일</th>
                 <td>
                     <div class="date-row">
                         <input type="date" id="date_value" value="2026-01-01" onchange="autoSave()" oninput="autoSave()" aria-label="작성일">
                     </div>
                 </td>
+                <td colspan="2"></td>
             </tr>
             <tr>
                 <th>영상 카테고리</th>
@@ -715,7 +728,13 @@
         <h2>4. Moodboard & Tone (무드보드 및 톤앤매너)</h2>
         
         <div class="print-block print-block--grid yt-reference-block">
-        <div class="section-subtitle"><span class="section-title-content">🎥 편집 스타일 레퍼런스 (유튜브 링크) <span class="help-tip" tabindex="0" role="img" aria-label="편집 스타일 레퍼런스 가이드" data-tooltip="내 영상의 편집 리듬, 화면 구성, 자막, 음악 사용 방식과 비슷한 참고 영상을 적어보세요.">?</span></span></div>
+        <div class="section-subtitle">
+            <span class="section-title-content">🎥 편집 스타일 레퍼런스 (유튜브 링크) <span class="help-tip" tabindex="0" role="img" aria-label="편집 스타일 레퍼런스 가이드" data-tooltip="내 영상의 편집 리듬, 화면 구성, 자막, 음악 사용 방식과 비슷한 참고 영상을 적어보세요.">?</span></span>
+            <nav class="resource-links" aria-label="영상 레퍼런스 사이트">
+                <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" title="YouTube - 영상 레퍼런스"><img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" alt="YouTube"></a>
+                <a href="https://vimeo.com/" target="_blank" rel="noopener noreferrer" title="Vimeo - 영상 레퍼런스"><img src="https://www.google.com/s2/favicons?domain=vimeo.com&sz=64" alt="Vimeo"></a>
+            </nav>
+        </div>
         <div class="grid-container" id="grid_yt_ref">
             <!-- 동적 유튜브 슬롯 생성 -->
         </div>
@@ -827,8 +846,14 @@
         <div class="print-block print-block--grid">
         <div class="section-subtitle">
             <span>🖼️ 레퍼런스 이미지 (Moodboard)</span>
-            <nav class="resource-links" aria-label="유튜브 화면 캡처 도구">
-                <a href="https://chromewebstore.google.com/detail/screenshot-youtube/gjoijpfmdhbjkkgnmahganhoinjjpohk" target="_blank" rel="noopener noreferrer" title="Screenshot YouTube - 유튜브 화면 캡처 확장 프로그램"><img src="https://www.google.com/s2/favicons?domain=chromewebstore.google.com&sz=64" alt="Screenshot YouTube"></a>
+            <nav class="resource-links moodboard-links" aria-label="이미지 레퍼런스 참고 사이트">
+                <a class="resource-link-special" href="https://chromewebstore.google.com/detail/screenshot-youtube/gjoijpfmdhbjkkgnmahganhoinjjpohk" target="_blank" rel="noopener noreferrer" title="Screenshot YouTube - 유튜브 화면 캡처 확장 프로그램"><img src="https://www.google.com/s2/favicons?domain=chromewebstore.google.com&sz=64" alt="Screenshot YouTube"></a>
+                <span class="resource-links-divider" aria-hidden="true"></span>
+                <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" title="YouTube - 영상·이미지 레퍼런스"><img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" alt="YouTube"></a>
+                <a href="https://www.pinterest.com/" target="_blank" rel="noopener noreferrer" title="Pinterest - 이미지 레퍼런스"><img src="https://www.google.com/s2/favicons?domain=pinterest.com&sz=64" alt="Pinterest"></a>
+                <a href="https://dribbble.com/" target="_blank" rel="noopener noreferrer" title="Dribbble - 디자인 레퍼런스"><img src="https://www.google.com/s2/favicons?domain=dribbble.com&sz=64" alt="Dribbble"></a>
+                <a href="https://www.behance.net/" target="_blank" rel="noopener noreferrer" title="Behance - 디자인 레퍼런스"><img src="https://www.google.com/s2/favicons?domain=behance.net&sz=64" alt="Behance"></a>
+                <a href="https://unsplash.com/" target="_blank" rel="noopener noreferrer" title="Unsplash - 사진 레퍼런스"><img src="https://www.google.com/s2/favicons?domain=unsplash.com&sz=64" alt="Unsplash"></a>
             </nav>
         </div>
         <div class="grid-container" id="grid_mood">
@@ -842,7 +867,15 @@
         <section class="print-section">
         <h2>5. Audio Strategy (오디오 전략)</h2>
         <div class="print-block">
-            <div class="section-subtitle"><span class="section-title-content">🔊 오디오 전략 <span class="help-tip" tabindex="0" role="img" aria-label="오디오 전략 작성 가이드" data-tooltip="영상에 사용할 음악과 목소리의 역할, 분위기, 제작 방식을 구체적으로 적어보세요. 실제 편집 단계에서 사운드 방향을 결정하는 기준이 됩니다.">?</span></span></div>
+            <div class="section-subtitle">
+                <span class="section-title-content">🔊 오디오 전략 <span class="help-tip" tabindex="0" role="img" aria-label="오디오 전략 작성 가이드" data-tooltip="영상에 사용할 음악과 목소리의 역할, 분위기, 제작 방식을 구체적으로 적어보세요. 실제 편집 단계에서 사운드 방향을 결정하는 기준이 됩니다.">?</span></span>
+                <nav class="resource-links" aria-label="오디오 참고 사이트">
+                    <a href="https://www.youtube.com/audiolibrary" target="_blank" rel="noopener noreferrer" title="YouTube Audio Library - 유튜브 오디오 보관함"><img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" alt="YouTube Audio Library"></a>
+                    <a href="https://www.youtube.com/channel/UCMC-8sRR27Q_BlE6wU1M3vQ" target="_blank" rel="noopener noreferrer" title="NCS - NoCopyrightSounds 공식 채널"><img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" alt="NCS"></a>
+                    <a href="https://pixabay.com/music/" target="_blank" rel="noopener noreferrer" title="Pixabay Music - 무료 음원"><img src="https://www.google.com/s2/favicons?domain=pixabay.com&sz=64" alt="Pixabay Music"></a>
+                    <a href="https://mixkit.co/free-stock-music/" target="_blank" rel="noopener noreferrer" title="Mixkit - 무료 스톡 음원"><img src="https://www.google.com/s2/favicons?domain=mixkit.co&sz=64" alt="Mixkit"></a>
+                </nav>
+            </div>
             <table>
                 <tr>
                     <th>배경음악</th>
@@ -1471,19 +1504,32 @@
             remoteState.assetByKey = Object.fromEntries((payload.assets || []).map((asset) => [asset.logical_key, asset]));
             document.body.classList.add('editing');
             closeModal();
-            updateRemoteToolbar();
             applyRemoteProject(payload);
+            updateRemoteToolbar();
         }
 
         function updateRemoteToolbar() {
-            const label = document.getElementById('remote_project_label');
-            const button = document.getElementById('status_button');
-            if (label && remoteState.project) label.textContent = `${remoteState.project.student_name || '이름 없음'} · ${remoteState.project.title || '새 기획안'}`;
-            if (button && remoteState.project) {
-                const complete = remoteState.project.status === 'complete';
-                button.textContent = complete ? '완성' : '작업중';
-                button.classList.toggle('complete', complete);
-            }
+            if (!remoteState.project) return;
+            const complete = remoteState.project.status === 'complete';
+            const dot = document.getElementById('remote_status_dot');
+            const text = document.getElementById('remote_status_text');
+            if (dot) dot.classList.toggle('complete', complete);
+            if (text) text.textContent = complete ? '완성' : '작업중';
+            updateDocumentMeta();
+        }
+
+        function updateDocumentMeta() {
+            const meta = document.getElementById('document_meta');
+            if (!meta) return;
+            const creator = document.getElementById('creator')?.value.trim() || remoteState.project?.student_name || '';
+            const title = document.getElementById('planner_title')?.value.trim() || remoteState.project?.title || '';
+            meta.textContent = [creator, title].filter(Boolean).join(' · ');
+            meta.hidden = !meta.textContent;
+        }
+
+        function handlePlannerMetaInput() {
+            updateDocumentMeta();
+            autoSave();
         }
 
         function clearTags() {
@@ -1493,7 +1539,9 @@
         function applyRemoteProject(payload) {
             remoteState.loading = true;
             resetEmbeddedForm();
-            const fields = payload.project?.content?.fields || {};
+            const fields = { ...(payload.project?.content?.fields || {}) };
+            if (!fields.creator && payload.project?.student_name) fields.creator = payload.project.student_name;
+            if (!fields.planner_title && payload.project?.title) fields.planner_title = payload.project.title;
             Object.entries(fields).forEach(([id, value]) => {
                 const element = document.getElementById(id);
                 if (!element || element.type === 'file') return;
@@ -1544,6 +1592,7 @@
             initializeTypographyDropSlots();
             initializeTextareas();
             remoteState.loading = false;
+            updateDocumentMeta();
             setSaveStatus(`${remoteState.admin ? '관리자 모드' : '편집 모드'} · 불러오기 완료`);
         }
 
@@ -1618,16 +1667,18 @@
                 await uploadRemoteAssets(content);
                 content = collectRemoteContent();
                 const firstAsset = Object.values(remoteState.assetByKey).find((asset) => asset.kind === 'reference' || asset.kind === 'thumbnail');
-                const creator = content.fields.creator || remoteState.project.student_name || '';
+                const creator = content.fields.creator || '';
+                const plannerTitle = content.fields.planner_title || remoteState.project.title || '새 기획안';
                 const result = await remoteApi('save', {
                     projectId: remoteState.project.id,
                     studentName: creator,
-                    title: remoteState.project.title || '새 기획안',
+                    title: plannerTitle,
                     status: remoteState.project.status || 'working',
                     content,
                     coverAssetPath: firstAsset?.storage_path || remoteState.project.cover_asset_path || ''
                 }, remoteState.token);
                 remoteState.project.student_name = creator;
+                remoteState.project.title = plannerTitle;
                 if (firstAsset?.storage_path) remoteState.project.cover_asset_path = firstAsset.storage_path;
                 updateRemoteToolbar();
                 if (showMessage) setSaveStatus(`Supabase에 저장 완료 · ${formatSavedAt()}`);
@@ -1644,13 +1695,6 @@
             clearTimeout(remoteState.saveTimer);
             remoteState.saveTimer = setTimeout(() => saveRemoteProject(), 900);
             setSaveStatus('변경 내용을 저장할 준비 중입니다.');
-        }
-
-        async function toggleProjectStatus() {
-            if (!remoteState.project) return;
-            remoteState.project.status = remoteState.project.status === 'complete' ? 'working' : 'complete';
-            updateRemoteToolbar();
-            await saveRemoteProject();
         }
 
         async function showHome() {
@@ -2459,4 +2503,3 @@
     </script>
 </body>
 </html>
-
