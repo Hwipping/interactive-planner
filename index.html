@@ -1,0 +1,2373 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>영상 제작 기획안 - Interactive Planner v4</title>
+<style>
+    /* 1. 디자인 시스템 */
+    body {
+        font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background-color: #e9ecef;
+        margin: 0;
+        padding: 84px 20px 20px;
+    }
+    
+    .a4-page {
+        width: min(210mm, 100%);
+        min-height: 297mm;
+        margin: 0 auto;
+        padding: 16mm 18mm 20mm;
+        background: white;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        position: relative;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .toolbar {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        background: #343a40; color: white;
+        padding: 12px; text-align: center;
+        z-index: 1000; display: flex;
+        justify-content: center; gap: 20px; align-items: center;
+    }
+
+    .save-status {
+        min-width: 190px;
+        color: #dee2e6;
+        font-size: 12px;
+        text-align: left;
+    }
+    
+    .btn-action {
+        color: white; border: none; padding: 8px 20px;
+        cursor: pointer; border-radius: 4px; font-weight: bold; transition: 0.2s;
+    }
+    .btn-action:focus-visible,
+    .tag-close:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible {
+        outline: 2px solid #1864ab;
+        outline-offset: 2px;
+    }
+    .btn-print { background: #ff6b6b; }
+    .btn-save-html { background: #20c997; }
+    .btn-save-copy { background: #4dabf7; }
+    .btn-reset { background: #adb5bd; }
+    .btn-download-palette { 
+        background: #4dabf7; 
+        font-size: 11px; 
+        padding: 4px 10px; 
+        height: fit-content;
+    }
+    .btn-download-palette:hover { background: #339af0; }
+
+    h1 { text-align: center; color: #25282b; border-bottom: 2px solid #25282b; padding-bottom: 12px; margin: 0 0 28px; font-size: 24px; letter-spacing: -.02em; }
+    h2 { background-color: #343a40; color: white; padding: 11px 15px; font-size: 1.05rem; margin: 0 0 16px; border-radius: 7px; letter-spacing: -.01em; }
+
+    .section-subtitle {
+        margin: 0 0 10px; font-size: .95rem; color: #343a40;
+        border: none; padding: 9px 11px; font-weight: bold;
+        background: #edf0f2; border-radius: 6px;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .section-title-content { display: inline-flex; align-items: center; gap: 6px; }
+    .help-tip {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        border: 1px solid #1864ab;
+        border-radius: 50%;
+        color: #1864ab;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: help;
+        flex: 0 0 auto;
+    }
+    .help-tip::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: 0;
+        bottom: calc(100% + 8px);
+        z-index: 20;
+        width: 250px;
+        padding: 9px 11px;
+        border-radius: 6px;
+        background: #343a40;
+        color: white;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 1.5;
+        text-align: left;
+        white-space: normal;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(4px);
+        transition: opacity .15s ease, transform .15s ease, visibility .15s ease;
+        pointer-events: none;
+    }
+    .help-tip:hover::after,
+    .help-tip:focus-visible::after,
+    .help-tip.is-open::after {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    .print-section { display: flex; flex-direction: column; margin: 0 0 26px; padding: 16px 18px 10px; border: 1px solid #d7dce0; border-radius: 10px; background: #f4f6f7; box-shadow: 0 3px 12px rgba(33, 37, 41, .06); }
+    .print-block { margin-bottom: 14px; padding: 14px; border: 1px solid #e0e4e7; border-radius: 8px; background: #fff; }
+    .print-block:last-child { margin-bottom: 0; }
+    .print-block--compact { margin-bottom: 12px; }
+
+    .section-options { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 11px 13px; border: 1px solid #dfe3e6; border-radius: 7px; background: #f7f8f9; }
+    .section-options label { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: #343a40; }
+
+    table { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin: -8px 0 12px; table-layout: fixed; }
+    th, td { border: none; padding: 9px; vertical-align: middle; }
+    th { background-color: #e9ecef; border-radius: 6px; font-weight: bold; width: 22%; font-size: 0.85rem; color: #343a40; }
+    td { background-color: #fff; border-radius: 6px; }
+
+    input[type="text"], input[type="date"], textarea, select {
+        width: 100%; border: 1px solid #d7dce0; border-radius: 5px; background: #f8f9fa; font-family: inherit; font-size: 0.95rem; padding: 8px; box-sizing: border-box; outline: none;
+    }
+    input::placeholder, textarea::placeholder { color: #adb5bd !important; opacity: 1; }
+    textarea {
+        min-height: 88px;
+        overflow-y: hidden;
+        resize: none;
+    }
+    #film_detail { min-height: 100px; }
+    .guided-field {
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 7px;
+        background: #f8fafc !important;
+        padding: 10px 12px !important;
+        transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+    }
+    .guided-field:focus {
+        border-color: #1864ab !important;
+        background: white !important;
+        box-shadow: 0 0 0 3px rgba(24, 100, 171, .12);
+    }
+    textarea.guided-field { min-height: 128px; }
+    textarea.target-field { min-height: 48px; }
+    .input-row { display: flex; gap: 5px; align-items: center; width: 100%; }
+    .custom-input-box { display: none; align-items: center; gap: 5px; width: 100%; }
+    .btn-cancel { cursor: pointer; color: #adb5bd; font-size: 1.1rem; transition: 0.2s; }
+    .btn-cancel:hover { color: #fa5252; }
+    
+    .date-row { width: 100%; }
+    .date-row input[type="date"] { color: #212529; }
+
+    .hidden-section { display: none; padding: 14px; background: #fff; border: 1px solid #e0e4e7; border-radius: 8px; margin-top: 10px; }
+    .visible { display: block; }
+
+    /* 이미지 및 유튜브 그리드 - 가로 2개 배치 */
+    .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px; }
+    .reference-card { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 8px; border: 1px solid #e0e4e7; border-radius: 8px; background: #f8f9fa; cursor: grab; transition: border-color .15s ease, box-shadow .15s ease, opacity .15s ease; }
+    .reference-card:active { cursor: grabbing; }
+    .reference-card.dragging { opacity: .45; border-color: #6c757d; }
+    .reference-card.drag-over { border-color: #868e96; box-shadow: 0 0 0 3px rgba(108, 117, 125, .16); }
+    .reference-card.is-filled .box-item { border-style: solid; }
+    .reference-card .box-item { width: 100%; }
+    .reference-memo { width: 100%; min-height: 58px; padding: 8px 9px; border: 1px solid #d7dce0; border-radius: 5px; background: #fff; color: #343a40; font: inherit; font-size: .82rem; line-height: 1.45; resize: vertical; box-sizing: border-box; }
+    .reference-memo::placeholder { color: #adb5bd; }
+    .reference-memo:focus { outline: none; border-color: #868e96; box-shadow: 0 0 0 3px rgba(108, 117, 125, .12); }
+    .reference-drop-hint { grid-column: 1 / -1; padding: 8px; color: #868e96; font-size: .78rem; text-align: center; }
+    
+    .box-item {
+        background-color: #f8f9fa; border: 2px dashed #dee2e6; color: #adb5bd; text-align: center; display: flex; align-items: center; justify-content: center; position: relative; aspect-ratio: 16 / 9; overflow: hidden; cursor: pointer; transition: 0.2s;
+    }
+    
+    .box-item img { width: 100%; height: 100%; object-fit: contain; background-color: #f1f3f5; }
+    
+    .box-wrapper { display: flex; flex-direction: column; gap: 8px; }
+    .yt-thumb-preview { 
+        width: 100%; aspect-ratio: 16/9; background: #f8f9fa; border: 2px dashed #dee2e6; 
+        border-radius: 4px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;
+        color: #adb5bd; font-size: 0.85rem; cursor: pointer;
+    }
+    .yt-thumb-preview img { width: 100%; height: 100%; object-fit: contain; display: none; background-color: #f1f3f5; }
+    .yt-thumb-preview.has-data { border-style: solid; }
+    .yt-thumb-preview.has-data img { display: block; }
+    .yt-thumb-preview.has-data span { display: none; }
+
+    .yt-inputs { display: flex; flex-direction: column; gap: 4px; }
+    .yt-inputs input { font-size: 0.85rem; border: 1px solid #d7dce0; border-radius: 5px; background: #f8f9fa; padding: 6px 8px; }
+    .yt-inputs .yt-title-input { font-weight: bold; color: #343a40; }
+
+    .btn-remove {
+        position: absolute; top: 10px; right: 10px; background: rgba(250, 82, 82, 0.9); 
+        color: white; border-radius: 4px; padding: 4px 8px; font-size: 11px; 
+        line-height: 1; font-weight: bold; cursor: pointer; border: none; 
+        z-index: 10; display: none;
+    }
+    .box-item:hover .btn-remove,
+    .yt-thumb-preview:hover .btn-remove { 
+        display: block; 
+    }
+
+    .tag-container {
+        display: flex; flex-wrap: wrap; gap: 10px; padding: 12px; border: 1px solid #d7dce0;
+        background: #f8f9fa; border-radius: 7px; align-items: center; min-height: 55px; margin-bottom: 20px;
+    }
+    .tag {
+        background: #e9ecef; color: #343a40; padding: 6px 12px;
+        border: 1px solid #d7dce0; border-radius: 6px; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;
+        font-weight: bold; transition: transform 0.1s;
+    }
+    .tag:hover { transform: translateY(-1px); }
+    .tag-close {
+        cursor: pointer; color: #868e96; font-size: 1.1rem;
+        background: transparent; border: none; padding: 0; line-height: 1;
+    }
+    .tag-close:hover { color: #343a40; }
+    .tag-input {
+        border: none !important; outline: none !important; background: transparent !important;
+        flex-grow: 1; min-width: 150px; font-size: 0.95rem; padding: 4px !important;
+    }
+
+    .color-swatch-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .swatch-item { flex: 1; min-width: 100px; text-align: center; }
+    .color-box { width: 100%; aspect-ratio: 1 / 1; max-height: 76px; border: 1px solid #dee2e6; border-radius: 9px; margin-bottom: 7px; }
+    .typography-list { display: flex; flex-direction: column; gap: 10px; }
+    .typography-item { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 10px; align-items: stretch; padding: 10px; border: 1px solid #e0e4e7; border-radius: 7px; background: #f8f9fa; }
+    .typography-info { display: flex; min-width: 0; flex-direction: column; justify-content: center; gap: 10px; }
+    .typography-label { display: flex; flex: 0 0 52px; align-items: center; justify-content: center; padding: 10px; border-radius: 6px; background: #e9ecef; color: #343a40; font-weight: 700; }
+    .typography-info input { flex: 0 0 48px; min-height: 48px; }
+    .typography-image-slot { width: 100%; height: 130px; min-height: 130px; max-height: 130px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; border: 2px dashed #ced4da; border-radius: 6px; background: #fff; color: #adb5bd; text-align: center; cursor: pointer; box-sizing: border-box; }
+    .typography-image-slot img { width: 100%; height: 100%; min-height: 0; object-fit: contain; background: #fff; }
+    .typography-image-slot.is-filled { border-style: solid; }
+    .typography-image-slot.drag-over { border-color: #868e96; background: #f1f3f5; box-shadow: 0 0 0 3px rgba(108, 117, 125, .16); }
+    .typography-image-slot:hover .btn-remove { display: block; }
+    .typography-image-slot .btn-remove { top: 6px; right: 6px; }
+    .hex-input-wrap {
+        display: flex;
+        align-items: center;
+        border: 1px solid #d7dce0;
+        border-radius: 5px;
+        background: #f8f9fa;
+        padding: 0 5px;
+        gap: 2px;
+    }
+    .hex-prefix {
+        color: #495057;
+        font-weight: 700;
+        font-size: 0.9rem;
+        line-height: 1;
+    }
+    .hex-input-wrap input {
+        border: none !important;
+        background: transparent !important;
+        padding-left: 0;
+        text-transform: uppercase;
+    }
+
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
+
+    @media print {
+        .toolbar, .btn-bg-upload, .btn-remove, .btn-download-palette { display: none !important; }
+        body {
+            background: white;
+            padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .a4-page {
+            box-shadow: none;
+            margin: 0;
+            width: auto;
+            min-height: auto;
+            padding: 0;
+        }
+        .print-section {
+            box-shadow: none;
+            border-color: #d9dde1;
+        }
+        .hidden-section:not(.visible) { display: none !important; }
+        .box-item, .yt-thumb-preview, .tag-container { border: 1px solid #eee; }
+        .tag { background: #f1f3f5; color: #333; border: 1px solid #ccc; box-shadow: none; }
+        .tag-close { display: none; }
+        .typography-image-slot:not(.is-filled) { display: none; }
+        h1, h2, .section-subtitle {
+            break-after: avoid-page;
+            page-break-after: avoid;
+        }
+        .print-section {
+            break-inside: auto;
+            page-break-inside: auto;
+            margin-bottom: 18px;
+        }
+        .print-block,
+        table, tr, th, td,
+        textarea,
+        .hidden-section,
+        .tag-container,
+        .color-swatch-group,
+        .swatch-item,
+        .box-item.has-img,
+        .box-wrapper.is-filled,
+        .yt-thumb-preview.has-data {
+            break-inside: avoid-page;
+            page-break-inside: avoid;
+        }
+        .reference-card.is-filled,
+        .yt-reference-block .box-wrapper {
+            break-inside: avoid-page;
+            page-break-inside: avoid;
+        }
+        .print-block--grid,
+        .print-block--grid .grid-container {
+            break-inside: auto;
+            page-break-inside: auto;
+        }
+        .grid-container {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            align-items: start;
+        }
+        .box-item:not(.has-img),
+        .box-wrapper:not(.is-filled) {
+            display: none !important;
+        }
+        .reference-card:not(.is-filled) { display: none !important; }
+        .print-block--grid:not(:has(.box-item.has-img, .box-wrapper.is-filled)) {
+            display: none !important;
+        }
+        .yt-reference-block { display: block !important; }
+        .yt-reference-block .box-wrapper,
+        .yt-reference-block .box-wrapper:not(.is-filled) { display: flex !important; }
+    }
+
+    @media (max-width: 900px) {
+        body { padding: 112px 10px 10px; }
+        .toolbar { flex-wrap: wrap; gap: 10px; padding: 10px; }
+        .btn-action { flex: 1 1 170px; }
+        .a4-page { min-height: auto; padding: 16px 10px; }
+        .print-section { padding: 13px 12px 3px; }
+        .typography-item { grid-template-columns: 1fr; }
+        .typography-info input { flex-basis: auto; }
+        .grid-container { grid-template-columns: 1fr; }
+        .color-swatch-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .swatch-item:last-child { grid-column: 1 / -1; }
+        .date-row { flex-wrap: wrap; white-space: normal; }
+        .save-status { flex: 1 1 100%; text-align: center; }
+    }
+
+    /* 인쇄에서는 모바일 반응형 규칙보다 A4용 화면 구성을 우선한다. */
+    @media print {
+        body { padding: 0; }
+        .a4-page { padding: 0; }
+        .grid-container { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .typography-item { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+        .color-swatch-group { display: flex; flex-wrap: nowrap; gap: 10px; }
+        .swatch-item { flex: 1 1 0; min-width: 0; }
+        .swatch-item:last-child { grid-column: auto; }
+    }
+
+    /* Supabase 연결형 폴더 목록 화면 */
+    body.remote-app { padding: 0; background: #eef1f3; }
+    body.remote-app .toolbar,
+    body.remote-app .a4-page { display: none; }
+    body.remote-app.editing { padding: 84px 20px 20px; }
+    body.remote-app.editing .toolbar,
+    body.remote-app.editing .a4-page { display: flex; }
+    body.remote-app.editing .toolbar { display: flex; }
+    .home-screen { min-height: 100vh; box-sizing: border-box; padding: 38px 28px 56px; color: #25282b; }
+    .home-shell { max-width: 1180px; margin: 0 auto; }
+    .home-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+    .home-brand { display: flex; align-items: center; gap: 16px; }
+    .home-folder-icon { width: 64px; height: 50px; position: relative; border-radius: 8px; background: #f5c451; box-shadow: inset 0 -5px rgba(188, 139, 34, .2), 0 8px 20px rgba(52, 58, 64, .12); }
+    .home-folder-icon::before { content: ''; position: absolute; left: 7px; top: -8px; width: 28px; height: 14px; border-radius: 7px 7px 0 0; background: #f5c451; }
+    .home-brand h1 { margin: 0; font-size: clamp(2rem, 4vw, 3.4rem); letter-spacing: -.06em; }
+    .home-brand p { margin: 4px 0 0; color: #868e96; font-size: .95rem; }
+    .home-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .folder-panel { border: 1px solid #d7dce0; border-radius: 18px; background: rgba(255, 255, 255, .84); box-shadow: 0 12px 35px rgba(33, 37, 41, .08); overflow: hidden; }
+    .folder-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; border-bottom: 1px solid #e9ecef; background: #fff; }
+    .folder-toolbar strong { font-size: 1.05rem; }
+    .folder-toolbar span { color: #868e96; font-size: .85rem; }
+    .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 22px; padding: 26px; }
+    .project-card { min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; color: #343a40; }
+    .project-card:focus-visible { outline: 3px solid #1864ab; outline-offset: 7px; border-radius: 12px; }
+    .project-card:hover .project-cover { transform: translateY(-4px); box-shadow: 0 14px 22px rgba(33, 37, 41, .16); }
+    .project-cover { position: relative; aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #d7dce0; border-radius: 12px; background: linear-gradient(145deg, #f8f9fa, #e9ecef); box-shadow: 0 5px 12px rgba(33, 37, 41, .08); transition: transform .18s ease, box-shadow .18s ease; }
+    .project-cover img { width: 100%; height: 100%; object-fit: cover; }
+    .project-cover .empty-cover { font-size: 2.8rem; opacity: .55; }
+    .project-status { position: absolute; top: 10px; left: 10px; width: 12px; height: 12px; border-radius: 50%; border: 3px solid white; box-shadow: 0 1px 5px rgba(0,0,0,.18); }
+    .project-status.working { background: #f08c46; }
+    .project-status.complete { background: #37b679; }
+    .project-card-title { display: block; overflow: hidden; margin-top: 10px; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
+    .project-card-meta { display: block; margin-top: 3px; color: #868e96; font-size: .78rem; }
+    .empty-projects { grid-column: 1 / -1; padding: 70px 20px; color: #868e96; text-align: center; }
+    .home-error { grid-column: 1 / -1; padding: 20px; border-radius: 10px; background: #fff4e6; color: #c76b16; }
+    .app-button { color: white; border: 0; border-radius: 9px; padding: 11px 16px; font-weight: 700; cursor: pointer; transition: transform .15s ease, filter .15s ease; }
+    .app-button:hover { filter: brightness(.96); transform: translateY(-1px); }
+    .app-button.primary { background: #343a40; }
+    .app-button.secondary { background: #4dabf7; }
+    .app-button.ghost { color: #495057; background: #f1f3f5; }
+    .app-button.danger { background: #e85959; }
+    .app-button.small { padding: 7px 10px; font-size: .78rem; }
+    .remote-project-label { max-width: 230px; overflow: hidden; color: #dee2e6; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .remote-status-button { background: #f08c46; }
+    .remote-status-button.complete { background: #37b679; }
+    .app-modal { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(28, 33, 38, .45); }
+    .app-modal[hidden] { display: none; }
+    .modal-card { width: min(440px, 100%); position: relative; padding: 26px; border-radius: 16px; background: #fff; box-shadow: 0 22px 55px rgba(0,0,0,.2); }
+    .modal-card h2 { margin: 0 0 7px; padding: 0; color: #25282b; background: transparent; }
+    .modal-card p { margin: 0 0 18px; color: #868e96; font-size: .88rem; }
+    .modal-card label { display: block; margin: 13px 0 6px; color: #495057; font-size: .82rem; font-weight: 700; }
+    .modal-card input { min-height: 44px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+    .modal-close { position: absolute; top: 16px; right: 18px; border: 0; background: transparent; color: #868e96; font-size: 1.5rem; cursor: pointer; }
+    .modal-message { min-height: 20px; margin-top: 10px; color: #e85959; font-size: .82rem; }
+    .lightbox { position: fixed; inset: 0; z-index: 3200; display: flex; align-items: center; justify-content: center; padding: 30px; background: rgba(0,0,0,.78); }
+    .lightbox[hidden] { display: none; }
+    .lightbox img { max-width: min(1200px, 92vw); max-height: 88vh; object-fit: contain; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,.45); }
+    .lightbox-close { position: fixed; top: 18px; right: 24px; color: white; border: 0; background: transparent; font-size: 2rem; cursor: pointer; }
+    .remote-app .box-item img,
+    .remote-app .typography-image-slot img,
+    .remote-app .yt-thumb-preview img { cursor: zoom-in; }
+    @media (max-width: 700px) {
+        .home-screen { padding: 24px 14px 40px; }
+        .home-header { align-items: flex-start; flex-direction: column; }
+        .home-actions { width: 100%; justify-content: stretch; }
+        .home-actions .app-button { flex: 1; }
+        .project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 16px; }
+        .remote-project-label { display: none; }
+    }
+</style>
+</head>
+<body class="remote-app" data-is-exported="false" data-project-version="4">
+
+    <main id="home_screen" class="home-screen">
+        <div class="home-shell">
+            <header class="home-header">
+                <div class="home-brand">
+                    <span class="home-folder-icon" aria-hidden="true"></span>
+                    <div>
+                        <h1>기획안</h1>
+                        <p>영상 제작 실습 기획안을 안전하게 보관하고 이어서 작업하세요.</p>
+                    </div>
+                </div>
+                <div class="home-actions">
+                    <button class="app-button ghost" type="button" onclick="showAdminLogin()">관리자</button>
+                    <button class="app-button primary" type="button" onclick="showNewProjectModal()">＋ 새로 만들기</button>
+                </div>
+            </header>
+            <section class="folder-panel" aria-label="기획안 목록">
+                <div class="folder-toolbar">
+                    <strong>📁 기획안</strong>
+                    <span id="project_count">불러오는 중입니다.</span>
+                </div>
+                <div id="project_grid" class="project-grid"></div>
+            </section>
+        </div>
+    </main>
+
+    <div class="toolbar">
+        <button class="btn-action btn-reset" onclick="showHome()">기획안 목록</button>
+        <button class="btn-action btn-reset" onclick="resetAll()">새로 작성하기</button>
+        <button class="btn-action btn-save-html" onclick="saveRemoteProject()" title="현재 기획안을 Supabase에 저장합니다.">저장</button>
+        <button class="btn-action btn-save-copy" onclick="saveHtmlCopy()" title="새 HTML 파일로 별도 저장합니다.">별도 파일로 저장</button>
+        <button class="btn-action btn-print" onclick="printDocument()" title="브라우저 인쇄 설정에서 머리말 및 꼬리말 해제를 권장합니다.">PDF로 저장 / 인쇄</button>
+        <button id="status_button" class="btn-action remote-status-button" onclick="toggleProjectStatus()">작업중</button>
+        <button class="btn-action btn-reset" onclick="showChangePassword()">비밀번호 변경</button>
+        <span id="remote_project_label" class="remote-project-label"></span>
+        <span class="save-status" id="save_status" role="status" aria-live="polite">저장본 파일로 작업하세요.</span>
+    </div>
+
+    <div class="a4-page">
+        <h1>[영상 제작 실습 기획안] Production Plan</h1>
+
+        <!-- 1. 기본 정보 -->
+        <section class="print-section">
+        <h2>1. Basic Information (기본 정보)</h2>
+        <div class="print-block">
+        <table>
+            <tr>
+                <th>제작자</th>
+                <td><input type="text" id="creator" placeholder="이름 입력" oninput="autoSave()"></td>
+                <th>작성일</th>
+                <td>
+                    <div class="date-row">
+                        <input type="date" id="date_value" value="2026-01-01" onchange="autoSave()" oninput="autoSave()" aria-label="작성일">
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <th>영상 카테고리</th>
+                <td colspan="3">
+                    <div class="input-row" id="cat_row">
+                        <select id="cat_select" onchange="handleDirectInput('cat')">
+                            <option value="브이로그">브이로그 (Vlog)</option>
+                            <option value="리뷰/언박싱">리뷰 / 언박싱</option>
+                            <option value="정보전달/교육">정보전달 / 교육</option>
+                            <option value="튜토리얼">튜토리얼 (How-to)</option>
+                            <option value="시네마틱/아트">시네마틱 / 아트</option>
+                            <option value="게임/엔터">게임 / 엔터테인먼트</option>
+                            <option value="쇼츠/릴스">쇼츠 / 릴스 (Short-form)</option>
+                            <option value="custom">직접 입력</option>
+                        </select>
+                        <div class="custom-input-box" id="cat_custom_box">
+                            <input type="text" id="cat_custom" placeholder="장르를 직접 입력하세요" oninput="autoSave()">
+                            <span class="btn-cancel" onclick="cancelDirectInput('cat')" title="선택지로 돌아가기">↺</span>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <th>해상도 (Resolution)</th>
+                <td>
+                    <div class="input-row" id="res_row">
+                        <select id="res_select" onchange="handleDirectInput('res')">
+                            <option value="1920x1080">1920x1080</option>
+                            <option value="3840x2160">3840x2160</option>
+                            <option value="1080x1920">1080x1920</option>
+                            <option value="1080x1080">1080x1080</option>
+                            <option value="custom">직접 입력</option>
+                        </select>
+                        <div class="custom-input-box" id="res_custom_box">
+                            <input type="text" id="res_custom" placeholder="예: 1280x720" oninput="autoSave()">
+                            <span class="btn-cancel" onclick="cancelDirectInput('res')" title="선택지로 돌아가기">↺</span>
+                        </div>
+                    </div>
+                </td>
+                <th>프레임레이트 (FPS)</th>
+                <td>
+                    <div class="input-row" id="fps_row">
+                        <select id="fps_select" onchange="handleDirectInput('fps')">
+                            <option value="23.976">23.976 fps</option>
+                            <option value="24">24 fps</option>
+                            <option value="29.97">29.97 fps</option>
+                            <option value="30" selected>30 fps</option>
+                            <option value="59.94">59.94 fps</option>
+                            <option value="60">60 fps</option>
+                            <option value="custom">직접 입력</option>
+                        </select>
+                        <div class="custom-input-box" id="fps_custom_box">
+                            <input type="text" id="fps_custom" placeholder="예: 120" oninput="autoSave()">
+                            <span class="btn-cancel" onclick="cancelDirectInput('fps')" title="선택지로 돌아가기">↺</span>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <th>예상 러닝타임 / 코덱</th>
+                <td><input type="text" id="runtime" placeholder="예: 5분 내외" oninput="autoSave()"></td>
+                <td colspan="2"><input type="text" id="codec" placeholder="출력 코덱 (예: H.264 / MP4)" oninput="autoSave()"></td>
+            </tr>
+        </table>
+        </div>
+        </section>
+
+        <!-- 2. 기획 의도 -->
+        <section class="print-section">
+        <h2>2. Concept & Target (의도 및 타겟)</h2>
+        <div class="print-block">
+        <div class="section-subtitle"><span class="section-title-content">🎯 기획 의도 / 시놉시스 <span class="help-tip" tabindex="0" role="img" aria-label="기획 의도 작성 가이드" data-tooltip="이 영상을 왜 만드는지, 무엇을 보여주고 싶은지, 시청자가 어떤 느낌이나 정보를 얻기를 바라는지 적어보세요.">?</span></span></div>
+        <textarea id="synopsis" class="guided-field" placeholder="예: 바쁜 일상 속에서 잠시 쉬어갈 수 있는 동네 산책 영상을 제작한다." oninput="handleTextareaInput(this)"></textarea>
+        </div>
+        <div class="print-block">
+        <div class="section-subtitle"><span class="section-title-content">👥 타겟 시청자 <span class="help-tip" tabindex="0" role="img" aria-label="타겟 시청자 작성 가이드" data-tooltip="이 영상을 가장 필요로 하거나 재미있게 볼 사람을 생각해보세요. 연령, 관심사, 생활 방식, 시청 상황 등을 구체적으로 적으면 좋습니다.">?</span></span></div>
+        <textarea id="target" class="guided-field target-field" placeholder="예: 조용한 산책 코스를 찾는 20~30대, 퇴근 후 힐링이 필요한 사람" oninput="handleTextareaInput(this)"></textarea>
+        </div>
+        </section>
+
+        <!-- 3. 소스 및 촬영 -->
+        <section class="print-section">
+        <h2>3. Source & Filming Plan (소스 및 촬영)</h2>
+        <div class="section-options print-block print-block--compact">
+            <label><input type="checkbox" id="chk_source" onchange="toggleSection('sec_source', this)"> 외부 소스 사용</label>
+            <label><input type="checkbox" id="chk_filming" onchange="toggleSection('sec_filming', this)"> 직접 촬영 진행</label>
+            <label><input type="checkbox" id="chk_ai" onchange="toggleSection('sec_ai', this)"> 생성형 AI 활용</label>
+        </div>
+
+        <div id="sec_source" class="hidden-section print-block">
+            <div class="section-subtitle"><span class="section-title-content">📂 사용 소스 명세 <span class="help-tip" tabindex="0" role="img" aria-label="외부 소스 작성 가이드" data-tooltip="외부 영상, 이미지, 음악, 자료화면 등 직접 만들지 않고 가져와 사용할 소스의 출처와 파일명을 적어보세요.">?</span></span></div>
+            <textarea id="source_list" placeholder="활용할 외부 영상 주소나 파일 이름을 적어주세요." oninput="handleTextareaInput(this)"></textarea>
+        </div>
+
+        <div id="sec_filming" class="hidden-section print-block">
+            <div class="section-subtitle"><span class="section-title-content">📹 직접 촬영 계획 <span class="help-tip" tabindex="0" role="img" aria-label="직접 촬영 계획 가이드" data-tooltip="어떤 장비로 언제 어디서 무엇을 촬영할지 적어보세요. 필요한 구도나 움직임까지 기록하면 촬영할 때 도움이 됩니다.">?</span></span></div>
+            <table>
+                <tr>
+                    <th>촬영 장비</th>
+                    <td><input type="text" id="film_gear" placeholder="예: iPhone 15 Pro, 삼각대" oninput="autoSave()"></td>
+                    <th>촬영 일시</th>
+                    <td><input type="text" id="film_date" placeholder="예: 2026-05-20 오후 2시" oninput="autoSave()"></td>
+                </tr>
+                <tr>
+                    <th>촬영 장소</th>
+                    <td colspan="3"><input type="text" id="film_loc" placeholder="예: 학교 앞 카페, 한강 공원" oninput="autoSave()"></td>
+                </tr>
+                <tr>
+                    <th>촬영 내용</th>
+                    <td colspan="3">
+                        <textarea id="film_detail" style="height: 100px;" placeholder="어떤 구도로 무엇을 찍을 것인지 상세히 기록하세요." oninput="handleTextareaInput(this)"></textarea>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div id="sec_ai" class="hidden-section print-block">
+            <div class="section-subtitle"><span class="section-title-content">✨ 생성형 AI 활용 계획 <span class="help-tip" tabindex="0" role="img" aria-label="생성형 AI 활용 가이드" data-tooltip="이미지, 영상, 음성, 음악, 아이디어 등 생성형 AI를 어디에 활용할지와 사용한 도구·프롬프트·출처를 기록해보세요.">?</span></span></div>
+            <table>
+                <tr>
+                    <th>사용 도구</th>
+                    <td><input type="text" id="ai_tool" placeholder="예: ChatGPT, Midjourney, Sora, ElevenLabs" oninput="autoSave()"></td>
+                </tr>
+                <tr>
+                    <th>활용 목적</th>
+                    <td><input type="text" id="ai_purpose" placeholder="예: 썸네일 이미지와 배경음악 아이디어 생성" oninput="autoSave()"></td>
+                </tr>
+                <tr>
+                    <th>생성 결과 / 프롬프트</th>
+                    <td><textarea id="ai_prompt" placeholder="어떤 결과물을 만들었는지, 핵심 프롬프트는 무엇이었는지 적어보세요." oninput="handleTextareaInput(this)"></textarea></td>
+                </tr>
+                <tr>
+                    <th>사용 및 출처 메모</th>
+                    <td><textarea id="ai_rights" placeholder="수정한 내용, 출처 표기 필요 여부, 수업 제출 시 참고할 사항을 적어보세요." oninput="handleTextareaInput(this)"></textarea></td>
+                </tr>
+            </table>
+        </div>
+
+        </section>
+
+        <!-- 4. 무드보드 및 톤앤매너 -->
+        <section class="print-section">
+        <h2>4. Moodboard & Tone (무드보드 및 톤앤매너)</h2>
+        
+        <div class="print-block print-block--grid yt-reference-block">
+        <div class="section-subtitle"><span class="section-title-content">🎥 편집 스타일 레퍼런스 (유튜브 링크) <span class="help-tip" tabindex="0" role="img" aria-label="편집 스타일 레퍼런스 가이드" data-tooltip="내 영상의 편집 리듬, 화면 구성, 자막, 음악 사용 방식과 비슷한 참고 영상을 적어보세요.">?</span></span></div>
+        <div class="grid-container" id="grid_yt_ref">
+            <!-- 동적 유튜브 슬롯 생성 -->
+        </div>
+        </div>
+
+        <div class="print-block">
+        <div class="section-subtitle"><span>✨ 분위기 키워드 (Mood Keywords)</span></div>
+        <div class="tag-container" id="tag_container" onclick="document.getElementById('keyword_input').focus()">
+            <input type="text" class="tag-input" id="keyword_input" placeholder="#키워드 입력 후 Enter (예: 감성적인, 힐링)" onkeydown="handleTagInput(event)" oncompositionstart="handleTagCompositionStart()" oncompositionend="handleTagCompositionEnd()">
+        </div>
+        <input type="hidden" id="keywords_data" onchange="autoSave()">
+        </div>
+
+        <div class="print-block">
+        <div class="section-subtitle">
+            <span class="section-title-content">🎨 컬러 가이드 (Color Palette) <span class="help-tip" tabindex="0" role="img" aria-label="컬러 가이드 작성 가이드" data-tooltip="영상 전체에서 반복해서 사용할 대표 색상을 정해보세요. 배경, 자막, 포인트 요소의 색을 구분하면 톤앤매너가 선명해집니다.">?</span></span>
+            <button class="btn-action btn-download-palette" onclick="downloadPalette()">팔레트 이미지 저장</button>
+        </div>
+        <div class="color-swatch-group" id="palette_container">
+            <div class="swatch-item">
+                <div class="color-box" id="cbox1"></div>
+                <div class="hex-input-wrap">
+                    <span class="hex-prefix">#</span>
+                    <input type="text" id="hex1" class="hex-input" inputmode="text" placeholder="Main" oninput="updateColor(this, 'cbox1')">
+                </div>
+            </div>
+            <div class="swatch-item">
+                <div class="color-box" id="cbox2"></div>
+                <div class="hex-input-wrap">
+                    <span class="hex-prefix">#</span>
+                    <input type="text" id="hex2" class="hex-input" inputmode="text" placeholder="Sub" oninput="updateColor(this, 'cbox2')">
+                </div>
+            </div>
+            <div class="swatch-item">
+                <div class="color-box" id="cbox3"></div>
+                <div class="hex-input-wrap">
+                    <span class="hex-prefix">#</span>
+                    <input type="text" id="hex3" class="hex-input" inputmode="text" placeholder="Point1" oninput="updateColor(this, 'cbox3')">
+                </div>
+            </div>
+            <div class="swatch-item">
+                <div class="color-box" id="cbox4"></div>
+                <div class="hex-input-wrap">
+                    <span class="hex-prefix">#</span>
+                    <input type="text" id="hex4" class="hex-input" inputmode="text" placeholder="Point2" oninput="updateColor(this, 'cbox4')">
+                </div>
+            </div>
+            <div class="swatch-item">
+                <div class="color-box" id="cbox5"></div>
+                <div class="hex-input-wrap">
+                    <span class="hex-prefix">#</span>
+                    <input type="text" id="hex5" class="hex-input" inputmode="text" placeholder="Point3" oninput="updateColor(this, 'cbox5')">
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <div class="print-block">
+        <div class="section-subtitle"><span>🔤 서체 가이드 (Typography)</span></div>
+        <div class="typography-list" id="typography_list">
+            <div class="typography-item">
+                <div class="typography-info">
+                    <div class="typography-label">메인 타이틀</div>
+                    <input type="text" id="f_main" placeholder="가장 큰 제목용 서체명" oninput="autoSave()">
+                </div>
+                <div class="typography-image-slot" id="typo_main" onclick="openTypographyFileSelector('typo_main')"><span>+ 서체 캡처 추가</span></div>
+            </div>
+            <div class="typography-item">
+                <div class="typography-info">
+                    <div class="typography-label">서브 타이틀</div>
+                    <input type="text" id="f_sub" placeholder="중간 제목 / 섹션용 서체명" oninput="autoSave()">
+                </div>
+                <div class="typography-image-slot" id="typo_sub" onclick="openTypographyFileSelector('typo_sub')"><span>+ 서체 캡처 추가</span></div>
+            </div>
+            <div class="typography-item">
+                <div class="typography-info">
+                    <div class="typography-label">자막 (본문)</div>
+                    <input type="text" id="f_cap" placeholder="하단 설명 / 대사 자막용 서체명" oninput="autoSave()">
+                </div>
+                <div class="typography-image-slot" id="typo_cap" onclick="openTypographyFileSelector('typo_cap')"><span>+ 서체 캡처 추가</span></div>
+            </div>
+            <div class="typography-item">
+                <div class="typography-info">
+                    <div class="typography-label">포인트 서체</div>
+                    <input type="text" id="f_point" placeholder="강조 및 자막 효과용 서체명" oninput="autoSave()">
+                </div>
+                <div class="typography-image-slot" id="typo_point" onclick="openTypographyFileSelector('typo_point')"><span>+ 서체 캡처 추가</span></div>
+            </div>
+        </div>
+        </div>
+
+        <div class="print-block print-block--grid">
+        <div class="section-subtitle"><span>🖼️ 레퍼런스 이미지 (Moodboard)</span></div>
+        <div class="grid-container" id="grid_mood">
+            <!-- 동적 이미지 슬롯 생성 -->
+        </div>
+        <div class="reference-drop-hint">이미지를 이 영역으로 끌어다 놓거나 빈 이미지 칸을 클릭해 추가하세요.</div>
+        </div>
+        </section>
+
+        <!-- 5. 오디오 전략 -->
+        <section class="print-section">
+        <h2>5. Audio Strategy (오디오 전략)</h2>
+        <div class="print-block">
+            <div class="section-subtitle"><span class="section-title-content">🔊 오디오 전략 <span class="help-tip" tabindex="0" role="img" aria-label="오디오 전략 작성 가이드" data-tooltip="영상에 사용할 음악과 목소리의 역할, 분위기, 제작 방식을 구체적으로 적어보세요. 실제 편집 단계에서 사운드 방향을 결정하는 기준이 됩니다.">?</span></span></div>
+            <table>
+                <tr>
+                    <th>배경음악</th>
+                    <td><input type="text" id="audio_music" placeholder="예: 잔잔한 어쿠스틱 기타, 따뜻하고 편안한 분위기" oninput="autoSave()"></td>
+                </tr>
+                <tr>
+                    <th>내레이션</th>
+                    <td>
+                        <select id="audio_narration" onchange="autoSave()">
+                            <option value="없음">사용하지 않음</option>
+                            <option value="직접 녹음">직접 녹음</option>
+                            <option value="TTS">TTS 활용</option>
+                            <option value="미정">아직 정하지 않음</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th>목소리 연출</th>
+                    <td><input type="text" id="audio_voice" placeholder="예: 낮고 차분한 톤, 속도는 느리게, 가까이 말하는 느낌" oninput="autoSave()"></td>
+                </tr>
+                <tr>
+                    <th>TTS 서비스 / 설정</th>
+                    <td><input type="text" id="audio_tts" placeholder="예: ElevenLabs · 한국어 여성 음성 · 안정적인 속도" oninput="autoSave()"></td>
+                </tr>
+                <tr>
+                    <th>믹싱 메모</th>
+                    <td><textarea id="audio_mix" placeholder="예: 내레이션이 나올 때 음악 볼륨을 낮추고, 주변 소리는 작게 남긴다." oninput="handleTextareaInput(this)"></textarea></td>
+                </tr>
+            </table>
+        </div>
+        </section>
+
+        <!-- 6. 썸네일 레퍼런스 -->
+        <section class="print-section">
+        <h2>6. Thumbnail & Title (유튜브 업로드 기획)</h2>
+        <div class="print-block">
+        <div class="section-subtitle"><span>📺 유튜브 영상 제목 (업로드용 제목)</span></div>
+        <input type="text" id="youtube_title" style="font-weight:bold; border:1px solid #1864ab; padding:10px;" placeholder="시청자가 클릭하고 싶게 만드는 매력적인 제목을 정해 보세요." oninput="autoSave()">
+        </div>
+        
+        <div class="print-block print-block--grid">
+        <div class="section-subtitle"><span>🖼️ 썸네일 디자인 레퍼런스</span></div>
+        <div class="grid-container" id="grid_thumb">
+            <!-- 동적 이미지 슬롯 생성 -->
+        </div>
+        <div class="reference-drop-hint">이미지를 이 영역으로 끌어다 놓거나 빈 이미지 칸을 클릭해 추가하세요.</div>
+        </div>
+        </section>
+
+        <div style="margin-top: 50px; text-align: center; color: #adb5bd; font-size: 0.8rem;">
+            Copyright © hwipping@naver.com. All rights reserved.
+        </div>
+    </div>
+
+    <div id="app_modal" class="app-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal_title">
+            <button class="modal-close" type="button" onclick="closeModal()" aria-label="닫기">×</button>
+            <div id="modal_content"></div>
+        </div>
+    </div>
+    <div id="lightbox" class="lightbox" hidden onclick="closeLightbox()">
+        <button class="lightbox-close" type="button" onclick="closeLightbox()" aria-label="이미지 닫기">×</button>
+        <img id="lightbox_image" alt="확대 이미지" onclick="event.stopPropagation()">
+    </div>
+
+    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+    <canvas id="paletteCanvas" style="display:none;"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+    <script>
+        const STORAGE_KEY = 'v4_planner_recovery';
+        const GRID_CONTAINER_MAP = { mood: 'grid_mood', tref: 'grid_thumb' };
+        const GRID_STORAGE_PREFIX = 'v4_grid_';
+        const YT_GRID_STORAGE_PREFIX = 'v4_ytgrid_';
+        const TYPOGRAPHY_IMAGE_STORAGE_KEY = 'v4_typography_images';
+        const SUPABASE_URL = 'https://anvbfwyzuziprokdiosd.supabase.co';
+        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_KoAKMum9hjxxIEj-4HXZew_-RR8UCxO';
+        const SUPABASE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/planner-api`;
+        const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+        const remoteState = {
+            project: null,
+            token: '',
+            admin: false,
+            loading: false,
+            saving: false,
+            saveTimer: null,
+            assetByKey: {}
+        };
+
+        // --- IndexedDB Manager ---
+        const ImageStorage = {
+            dbName: 'PlannerImageDB_v4',
+            storeName: 'images',
+            db: null,
+            init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, 1);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(this.storeName)) {
+                            db.createObjectStore(this.storeName);
+                        }
+                    };
+                    request.onsuccess = (e) => {
+                        this.db = e.target.result;
+                        resolve();
+                    };
+                    request.onerror = (e) => reject(e);
+                });
+            },
+            set(key, val) {
+                if (!this.db) return Promise.resolve();
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction(this.storeName, 'readwrite');
+                    tx.objectStore(this.storeName).put(val, key);
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => resolve();
+                });
+            },
+            get(key) {
+                if (!this.db) return Promise.resolve(undefined);
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction(this.storeName, 'readonly');
+                    const request = tx.objectStore(this.storeName).get(key);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => resolve(undefined);
+                });
+            },
+            clear() {
+                if (!this.db) return Promise.resolve();
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction(this.storeName, 'readwrite');
+                    tx.objectStore(this.storeName).clear();
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => resolve();
+                });
+            }
+        };
+
+        let currentUploadTarget = null;
+        let projectFileHandle = null;
+        let isTagComposing = false;
+        let pendingTagSubmit = false;
+
+        function compressImage(base64Str, maxWidth = 1000, quality = 0.7) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxWidth) {
+                        h *= maxWidth / w;
+                        w = maxWidth;
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = () => resolve(base64Str);
+                img.src = base64Str;
+            });
+        }
+
+        function readSavedData() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                return saved ? JSON.parse(saved) : null;
+            } catch (error) {
+                console.warn('저장 데이터가 손상되어 초기화합니다.', error);
+                localStorage.removeItem(STORAGE_KEY);
+                return null;
+            }
+        }
+
+        function persistSavedData(data) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            } catch (error) {
+                console.warn('저장 중 문제가 발생했습니다.', error);
+            }
+        }
+
+        function getGridContainer(prefix) {
+            return document.getElementById(GRID_CONTAINER_MAP[prefix]);
+        }
+
+        function normalizeHex(value) {
+            const raw = normalizeHexInputValue(value);
+            return /^([\da-f]{3}|[\da-f]{6})$/i.test(raw) ? '#' + raw.toUpperCase() : '';
+        }
+
+        function sanitizeFileName(name) {
+            return (name || '영상기획안').replace(/[\\/:*?"<>|]/g, '').trim() || '영상기획안';
+        }
+
+        function normalizeHexInputValue(value) {
+            return (value || '')
+                .replace(/#/g, '')
+                .replace(/[^0-9a-fA-F]/g, '')
+                .slice(0, 6)
+                .toUpperCase();
+        }
+
+        function getTagValues() {
+            return Array.from(document.querySelectorAll('#tag_container .tag'))
+                .map((tag) => tag.dataset.value || '')
+                .filter(Boolean);
+        }
+
+        function buildActionButton(label, onclickCode, extraClass = '') {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = extraClass;
+            button.textContent = label;
+            button.setAttribute('onclick', onclickCode);
+            return button;
+        }
+
+        function createTagElement(text) {
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.dataset.value = text;
+
+            const label = document.createElement('span');
+            label.className = 'tag-label';
+            label.textContent = text;
+
+            const close = buildActionButton('×', 'removeTag(this)', 'tag-close');
+            close.title = '키워드 삭제';
+            close.setAttribute('aria-label', `${text} 삭제`);
+
+            tag.append(label, close);
+            return tag;
+        }
+
+        function renderImageSlot(box, id, prefix, src = '') {
+            box.textContent = '';
+            if (src) {
+                const img = document.createElement('img');
+                img.src = src;
+                box.appendChild(img);
+                box.classList.add('has-img');
+            } else {
+                const label = document.createElement('span');
+                label.textContent = '+ 이미지 추가';
+                box.appendChild(label);
+                box.classList.remove('has-img');
+            }
+            box.appendChild(buildActionButton('삭제', `removeImage(event, '${id}', '${prefix}')`, 'btn-remove'));
+        }
+
+        function renderYtPreview(id, prefix, thumbSrc = '') {
+            const thumbWrap = document.getElementById('thumb_wrap_' + id);
+            const wrap = document.getElementById('wrap_' + id);
+            if (!thumbWrap) return;
+
+            thumbWrap.textContent = '';
+            if (thumbSrc) {
+                const img = document.createElement('img');
+                img.src = thumbSrc;
+                img.style.display = 'block';
+                thumbWrap.appendChild(img);
+                thumbWrap.classList.add('has-data');
+            } else {
+                const label = document.createElement('span');
+                label.textContent = '미리보기';
+                thumbWrap.appendChild(label);
+                thumbWrap.classList.remove('has-data');
+            }
+            const titleInput = document.getElementById('yt_title_' + id);
+            const urlInput = document.getElementById('yt_url_' + id);
+            if (wrap) wrap.classList.toggle('is-filled', Boolean(thumbSrc || titleInput?.value || urlInput?.value));
+
+            thumbWrap.appendChild(buildActionButton('삭제', `removeYtBox(event, '${id}', '${prefix}')`, 'btn-remove'));
+        }
+
+        function createYtBox(id, prefix, data = {}) {
+            const div = document.createElement('div');
+            div.className = 'box-wrapper';
+            div.id = 'wrap_' + id;
+            if (data.thumb || data.title || data.url) div.classList.add('is-filled');
+
+            const thumbWrap = document.createElement('div');
+            thumbWrap.className = 'yt-thumb-preview';
+            thumbWrap.id = 'thumb_wrap_' + id;
+            div.appendChild(thumbWrap);
+
+            const inputs = document.createElement('div');
+            inputs.className = 'yt-inputs';
+
+            const titleInput = document.createElement('input');
+            titleInput.type = 'text';
+            titleInput.className = 'yt-title-input';
+            titleInput.id = 'yt_title_' + id;
+            titleInput.placeholder = '영상 제목 (자동/수동)';
+            titleInput.setAttribute('oninput', 'autoSave()');
+            titleInput.value = data.title || '';
+
+            const urlInput = document.createElement('input');
+            urlInput.type = 'text';
+            urlInput.className = 'yt-url-input';
+            urlInput.id = 'yt_url_' + id;
+            urlInput.placeholder = '유튜브 URL 입력';
+            urlInput.setAttribute('onchange', `fetchYtData(this, '${id}', '${prefix}')`);
+            urlInput.value = data.url || '';
+
+            inputs.append(titleInput, urlInput);
+            div.append(thumbWrap, inputs);
+            renderYtPreview(id, prefix, data.thumb || '');
+            return div;
+        }
+
+        function syncExportableState() {
+            document.querySelectorAll('textarea').forEach((textarea) => {
+                autoResizeTextarea(textarea, false);
+            });
+            document.querySelectorAll('input:not([type="checkbox"]):not([type="file"])').forEach((el) => {
+                el.setAttribute('value', el.value);
+            });
+            document.querySelectorAll('input[type="checkbox"]').forEach((el) => {
+                if (el.checked) el.setAttribute('checked', 'checked');
+                else el.removeAttribute('checked');
+            });
+            document.querySelectorAll('textarea').forEach((el) => {
+                el.textContent = el.value;
+            });
+            document.querySelectorAll('select').forEach((sel) => {
+                Array.from(sel.options).forEach((opt) => {
+                    if (opt.value === sel.value) opt.setAttribute('selected', 'selected');
+                    else opt.removeAttribute('selected');
+                });
+            });
+        }
+
+        window.onload = async function() {
+            const isExported = document.body.getAttribute('data-is-exported') === 'true';
+
+            try {
+                await ImageStorage.init();
+            } catch (error) {
+                console.warn('이미지 저장소를 초기화하지 못했습니다.', error);
+            }
+
+            if (!isExported) {
+                ['cat', 'res', 'fps'].forEach((type) => syncDirectInputMode(type, false));
+                ['hex1', 'hex2', 'hex3', 'hex4', 'hex5'].forEach((id, index) => {
+                    updateColor(document.getElementById(id), 'cbox' + (index + 1), false);
+                });
+                initializeTextareas();
+                initializeTooltips();
+                initializeTypographyDropSlots();
+                initializeRemoteImageZoom();
+                setSaveStatus('기획안을 선택하거나 새로 만들어 주세요.');
+                await loadHome();
+                return;
+            }
+
+            initializeEmbeddedReferenceGrids();
+            await loadData();
+
+            const dateInput = document.getElementById('date_value');
+            if (dateInput && !dateInput.value) {
+                dateInput.value = '2026-01-01';
+                autoSave();
+            }
+
+            ['cat', 'res', 'fps'].forEach((type) => syncDirectInputMode(type, false));
+            ['hex1', 'hex2', 'hex3', 'hex4', 'hex5'].forEach((id, index) => {
+                updateColor(document.getElementById(id), 'cbox' + (index + 1), false);
+            });
+            initializeTextareas();
+            initializeTooltips();
+            initializeTypographyDropSlots();
+            setSaveStatus(isExported ? '파일 저장본에서 작업 중입니다.' : '브라우저 임시 복구 저장이 준비되었습니다.');
+        };
+
+        function setSaveStatus(message) {
+            const status = document.getElementById('save_status');
+            if (status) status.textContent = message;
+        }
+
+        async function remoteApi(action, payload = {}, token = remoteState.token) {
+            if (!SUPABASE_FUNCTION_URL || !SUPABASE_PUBLISHABLE_KEY) {
+                throw new Error('Supabase 연결 설정이 없습니다.');
+            }
+            const headers = {
+                'Content-Type': 'application/json',
+                apikey: SUPABASE_PUBLISHABLE_KEY
+            };
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const response = await fetch(SUPABASE_FUNCTION_URL, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ action, ...payload })
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(body.error || '서버 요청을 처리하지 못했습니다.');
+            return body;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, (character) => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[character]));
+        }
+
+        function renderHome(projects = []) {
+            const grid = document.getElementById('project_grid');
+            const count = document.getElementById('project_count');
+            if (!grid || !count) return;
+            count.textContent = `${projects.length}개 기획안`;
+            grid.replaceChildren();
+            if (!projects.length) {
+                const empty = document.createElement('div');
+                empty.className = 'empty-projects';
+                empty.innerHTML = '<div style="font-size:2.5rem;margin-bottom:8px">📁</div><strong>아직 기획안이 없습니다.</strong><br><span>새로 만들기를 눌러 첫 기획안을 시작하세요.</span>';
+                grid.appendChild(empty);
+                return;
+            }
+            projects.forEach((project) => {
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = 'project-card';
+                card.setAttribute('aria-label', `${project.student_name || '이름 없음'}의 ${project.title || '새 기획안'} 열기`);
+                card.addEventListener('click', () => openExistingProject(project.id));
+
+                const cover = document.createElement('span');
+                cover.className = 'project-cover';
+                const status = document.createElement('span');
+                status.className = `project-status ${project.status === 'complete' ? 'complete' : 'working'}`;
+                status.title = project.status === 'complete' ? '완성' : '작업중';
+                cover.appendChild(status);
+                if (project.cover_url) {
+                    const image = document.createElement('img');
+                    image.src = project.cover_url;
+                    image.alt = '기획안 대표 이미지';
+                    cover.appendChild(image);
+                } else {
+                    const emptyCover = document.createElement('span');
+                    emptyCover.className = 'empty-cover';
+                    emptyCover.textContent = '📝';
+                    cover.appendChild(emptyCover);
+                }
+
+                const title = document.createElement('span');
+                title.className = 'project-card-title';
+                title.textContent = `${project.student_name || '이름 없음'} - ${project.title || '새 기획안'}`;
+                const meta = document.createElement('span');
+                meta.className = 'project-card-meta';
+                meta.textContent = project.status === 'complete' ? '완성' : '작업중';
+                card.append(cover, title, meta);
+                grid.appendChild(card);
+            });
+        }
+
+        async function loadHome() {
+            const grid = document.getElementById('project_grid');
+            if (grid) grid.innerHTML = '<div class="empty-projects">기획안 목록을 불러오는 중입니다.</div>';
+            try {
+                const result = await remoteApi('list', {}, remoteState.admin ? remoteState.token : '');
+                renderHome(result.projects || []);
+            } catch (error) {
+                if (grid) grid.innerHTML = `<div class="home-error">${escapeHtml(error.message)}<br><small>인터넷 연결과 Supabase 설정을 확인해 주세요.</small></div>`;
+                const count = document.getElementById('project_count');
+                if (count) count.textContent = '불러오기 실패';
+            }
+        }
+
+        function showModal(content) {
+            const modal = document.getElementById('app_modal');
+            const target = document.getElementById('modal_content');
+            if (!modal || !target) return;
+            target.innerHTML = content;
+            modal.hidden = false;
+            target.querySelector('input, button')?.focus();
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('app_modal');
+            if (modal) modal.hidden = true;
+        }
+
+        function showNewProjectModal() {
+            showModal(`
+                <h2 id="modal_title">새 기획안 만들기</h2>
+                <p>학생 이름과 기획안 제목을 정하고, 다른 사람이 열 수 없도록 비밀번호를 설정하세요.</p>
+                <form data-modal-mode="new" onsubmit="handleModalSubmit(event)">
+                    <label for="modal_student_name">학생 이름</label>
+                    <input id="modal_student_name" type="text" required placeholder="예: 홍길동">
+                    <label for="modal_project_title">기획안 제목</label>
+                    <input id="modal_project_title" type="text" required value="새 기획안" placeholder="예: 학교 주변 산책 브이로그">
+                    <label for="modal_password">비밀번호</label>
+                    <input id="modal_password" type="password" required minlength="6" placeholder="6자 이상">
+                    <div class="modal-message" data-modal-message></div>
+                    <div class="modal-actions"><button class="app-button ghost" type="button" onclick="closeModal()">취소</button><button class="app-button primary" type="submit">기획안 만들기</button></div>
+                </form>`);
+        }
+
+        function showOpenProjectModal(projectId, projectTitle) {
+            showModal(`
+                <h2 id="modal_title">기획안 열기</h2>
+                <p>${escapeHtml(projectTitle || '기획안')}을(를) 열려면 설정한 비밀번호를 입력하세요.</p>
+                <form data-modal-mode="open" data-project-id="${escapeHtml(projectId)}" onsubmit="handleModalSubmit(event)">
+                    <label for="modal_open_password">비밀번호</label>
+                    <input id="modal_open_password" type="password" required placeholder="기획안 비밀번호">
+                    <div class="modal-message" data-modal-message></div>
+                    <div class="modal-actions"><button class="app-button ghost" type="button" onclick="closeModal()">취소</button><button class="app-button primary" type="submit">열기</button></div>
+                </form>`);
+        }
+
+        function showAdminLogin() {
+            showModal(`
+                <h2 id="modal_title">관리자 모드</h2>
+                <p>마스터 비밀번호로 로그인하면 모든 기획안을 비밀번호 없이 확인하고 수정할 수 있습니다.</p>
+                <form data-modal-mode="admin" onsubmit="handleModalSubmit(event)">
+                    <label for="modal_admin_password">마스터 비밀번호</label>
+                    <input id="modal_admin_password" type="password" required placeholder="마스터 비밀번호">
+                    <div class="modal-message" data-modal-message></div>
+                    <div class="modal-actions"><button class="app-button ghost" type="button" onclick="closeModal()">취소</button><button class="app-button primary" type="submit">관리자 로그인</button></div>
+                </form>`);
+        }
+
+        function showChangePassword() {
+            if (!remoteState.project) return;
+            if (remoteState.admin) {
+                showModal(`
+                    <h2 id="modal_title">학생 비밀번호 초기화</h2>
+                    <p>${escapeHtml(remoteState.project.student_name || '')} 기획안의 새 비밀번호를 설정합니다.</p>
+                    <form data-modal-mode="admin-reset" onsubmit="handleModalSubmit(event)">
+                        <label for="modal_next_password">새 비밀번호</label>
+                        <input id="modal_next_password" type="password" required minlength="6" placeholder="6자 이상">
+                        <div class="modal-message" data-modal-message></div>
+                        <div class="modal-actions"><button class="app-button ghost" type="button" onclick="closeModal()">취소</button><button class="app-button danger" type="submit">비밀번호 초기화</button></div>
+                    </form>`);
+                return;
+            }
+            showModal(`
+                <h2 id="modal_title">비밀번호 변경</h2>
+                <p>현재 비밀번호를 확인한 뒤 새 비밀번호로 변경합니다.</p>
+                <form data-modal-mode="change" onsubmit="handleModalSubmit(event)">
+                    <label for="modal_current_password">현재 비밀번호</label>
+                    <input id="modal_current_password" type="password" required>
+                    <label for="modal_next_password">새 비밀번호</label>
+                    <input id="modal_next_password" type="password" required minlength="6" placeholder="6자 이상">
+                    <div class="modal-message" data-modal-message></div>
+                    <div class="modal-actions"><button class="app-button ghost" type="button" onclick="closeModal()">취소</button><button class="app-button primary" type="submit">변경하기</button></div>
+                </form>`);
+        }
+
+        async function handleModalSubmit(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const mode = form.dataset.modalMode;
+            const message = form.querySelector('[data-modal-message]');
+            const submitButton = form.querySelector('button[type="submit"]');
+            if (submitButton) submitButton.disabled = true;
+            if (message) message.textContent = '처리 중입니다.';
+            try {
+                let result;
+                if (mode === 'new') {
+                    result = await remoteApi('create', {
+                        studentName: document.getElementById('modal_student_name').value,
+                        title: document.getElementById('modal_project_title').value,
+                        password: document.getElementById('modal_password').value
+                    }, '');
+                    remoteState.admin = false;
+                    showEditorResponse(result);
+                } else if (mode === 'open') {
+                    result = remoteState.admin
+                        ? await remoteApi('admin-open', { projectId: form.dataset.projectId }, remoteState.token)
+                        : await remoteApi('open', { projectId: form.dataset.projectId, password: document.getElementById('modal_open_password').value }, '');
+                    showEditorResponse(result);
+                } else if (mode === 'admin') {
+                    result = await remoteApi('admin-login', { password: document.getElementById('modal_admin_password').value }, '');
+                    remoteState.admin = true;
+                    remoteState.token = result.sessionToken;
+                    closeModal();
+                    renderHome(result.projects || []);
+                    setSaveStatus('관리자 모드로 기획안 목록을 확인하고 있습니다.');
+                    return;
+                } else if (mode === 'change') {
+                    await remoteApi('change-password', {
+                        projectId: remoteState.project.id,
+                        currentPassword: document.getElementById('modal_current_password').value,
+                        nextPassword: document.getElementById('modal_next_password').value
+                    }, remoteState.token);
+                    closeModal();
+                    setSaveStatus('비밀번호가 변경되었습니다.');
+                    return;
+                } else if (mode === 'admin-reset') {
+                    await remoteApi('admin-reset-password', {
+                        projectId: remoteState.project.id,
+                        nextPassword: document.getElementById('modal_next_password').value
+                    }, remoteState.token);
+                    closeModal();
+                    setSaveStatus('학생 비밀번호를 초기화했습니다.');
+                    return;
+                }
+            } catch (error) {
+                if (message) message.textContent = error.message;
+                if (submitButton) submitButton.disabled = false;
+            }
+        }
+
+        async function openExistingProject(projectId) {
+            const card = Array.from(document.querySelectorAll('.project-card')).find((item) => item.querySelector('[aria-label]')?.getAttribute('aria-label')?.includes(projectId));
+            if (remoteState.admin && remoteState.token) {
+                try {
+                    const result = await remoteApi('admin-open', { projectId }, remoteState.token);
+                    showEditorResponse(result);
+                } catch (error) {
+                    setSaveStatus(error.message);
+                }
+                return;
+            }
+            const projects = await remoteApi('list', {}, '');
+            const project = (projects.projects || []).find((item) => item.id === projectId);
+            showOpenProjectModal(projectId, project?.title || '기획안');
+        }
+
+        function showEditorResponse(payload) {
+            remoteState.project = payload.project;
+            remoteState.token = payload.sessionToken || remoteState.token;
+            remoteState.assetByKey = Object.fromEntries((payload.assets || []).map((asset) => [asset.logical_key, asset]));
+            document.body.classList.add('editing');
+            closeModal();
+            updateRemoteToolbar();
+            applyRemoteProject(payload);
+        }
+
+        function updateRemoteToolbar() {
+            const label = document.getElementById('remote_project_label');
+            const button = document.getElementById('status_button');
+            if (label && remoteState.project) label.textContent = `${remoteState.project.student_name || '이름 없음'} · ${remoteState.project.title || '새 기획안'}`;
+            if (button && remoteState.project) {
+                const complete = remoteState.project.status === 'complete';
+                button.textContent = complete ? '완성' : '작업중';
+                button.classList.toggle('complete', complete);
+            }
+        }
+
+        function clearTags() {
+            document.querySelectorAll('#tag_container .tag').forEach((tag) => tag.remove());
+        }
+
+        function applyRemoteProject(payload) {
+            remoteState.loading = true;
+            resetEmbeddedForm();
+            const fields = payload.project?.content?.fields || {};
+            Object.entries(fields).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (!element || element.type === 'file') return;
+                if (element.type === 'checkbox') element.checked = Boolean(value);
+                else element.value = value ?? '';
+            });
+            clearTags();
+            const keywords = payload.project?.content?.keywords || [];
+            keywords.forEach((keyword) => addTag(keyword));
+            ['cat', 'res', 'fps'].forEach((type) => syncDirectInputMode(type, false));
+            toggleSection('sec_source', Boolean(document.getElementById('chk_source')?.checked), false);
+            toggleSection('sec_filming', Boolean(document.getElementById('chk_filming')?.checked), false);
+            toggleSection('sec_ai', Boolean(document.getElementById('chk_ai')?.checked), false);
+
+            const grids = payload.project?.content?.grids || {};
+            ['mood', 'tref'].forEach((prefix) => {
+                const container = getGridContainer(prefix);
+                if (!container) return;
+                container.innerHTML = '';
+                const items = Array.isArray(grids[prefix]) ? grids[prefix] : [];
+                items.forEach((item) => {
+                    const asset = remoteState.assetByKey[item.assetKey];
+                    createImageSlot(container, prefix, item.memo || '', asset?.url || '', item.id || '');
+                });
+                ensureTrailingReferenceSlot(container, prefix);
+            });
+
+            const ytContainer = document.getElementById('grid_yt_ref');
+            if (ytContainer) {
+                ytContainer.innerHTML = '';
+                const youtube = Array.isArray(payload.project?.content?.youtube) ? payload.project.content.youtube : [];
+                youtube.forEach((item) => {
+                    const asset = remoteState.assetByKey[item.assetKey];
+                    ytContainer.appendChild(createYtBox(item.id, 'ytref', {
+                        title: item.title || '',
+                        url: item.url || '',
+                        thumb: asset?.url || item.thumbUrl || ''
+                    }));
+                });
+                ensureTrailingYtSlot(ytContainer, 'ytref');
+            }
+
+            const typography = payload.project?.content?.typography || {};
+            ['typo_main', 'typo_sub', 'typo_cap', 'typo_point'].forEach((id) => {
+                const asset = remoteState.assetByKey[id];
+                renderTypographyImage(document.getElementById(id), id, asset?.url || '');
+            });
+            initializeTypographyDropSlots();
+            initializeTextareas();
+            remoteState.loading = false;
+            setSaveStatus(`${remoteState.admin ? '관리자 모드' : '편집 모드'} · 불러오기 완료`);
+        }
+
+        function collectRemoteContent() {
+            const fields = {};
+            document.querySelectorAll('.a4-page input, .a4-page textarea, .a4-page select').forEach((element) => {
+                if (!element.id || element.type === 'file' || element.id === 'keyword_input' || element.id.startsWith('yt_title_') || element.id.startsWith('yt_url_')) return;
+                fields[element.id] = element.type === 'checkbox' ? element.checked : element.value;
+            });
+            const grids = {};
+            ['mood', 'tref'].forEach((prefix) => {
+                const container = getGridContainer(prefix);
+                grids[prefix] = Array.from(container?.querySelectorAll('.reference-card') || []).map((card) => {
+                    const box = card.querySelector('.box-item');
+                    return {
+                        id: box?.id || '',
+                        memo: card.querySelector('.reference-memo')?.value || '',
+                        assetKey: box?.querySelector('img') ? box.id : ''
+                    };
+                });
+            });
+            const youtube = Array.from(document.querySelectorAll('#grid_yt_ref .box-wrapper')).map((wrap) => ({
+                id: wrap.id.replace('wrap_', ''),
+                title: wrap.querySelector('.yt-title-input')?.value || '',
+                url: wrap.querySelector('.yt-url-input')?.value || '',
+                assetKey: wrap.querySelector('img') ? `ytthumb_${wrap.id.replace('wrap_', '')}` : '',
+                thumbUrl: wrap.querySelector('img')?.src || ''
+            })).filter((item) => item.title || item.url || item.thumbUrl);
+            const typography = {};
+            ['typo_main', 'typo_sub', 'typo_cap', 'typo_point'].forEach((id) => {
+                typography[id] = document.getElementById(id)?.querySelector('img') ? id : '';
+            });
+            return { fields, keywords: getTagValues(), grids, youtube, typography };
+        }
+
+        async function uploadRemoteAssets(content) {
+            const projectId = remoteState.project.id;
+            const upload = async (element, logicalKey, kind) => {
+                const image = element?.querySelector('img');
+                const src = image?.src || '';
+                if (!image || !src.startsWith('data:')) return;
+                setSaveStatus('이미지를 안전하게 업로드하는 중입니다.');
+                const result = await remoteApi('upload-asset', { projectId, logicalKey, kind, dataUrl: src }, remoteState.token);
+                remoteState.assetByKey[logicalKey] = { logical_key: logicalKey, storage_path: result.storagePath, kind, url: result.url };
+                image.src = result.url;
+            };
+            for (const prefix of ['mood', 'tref']) {
+                const container = getGridContainer(prefix);
+                for (const card of Array.from(container?.querySelectorAll('.reference-card.is-filled') || [])) {
+                    const box = card.querySelector('.box-item');
+                    await upload(box, box?.id, prefix === 'mood' ? 'reference' : 'thumbnail');
+                }
+            }
+            for (const id of ['typo_main', 'typo_sub', 'typo_cap', 'typo_point']) {
+                await upload(document.getElementById(id), id, 'typography');
+            }
+            for (const wrap of Array.from(document.querySelectorAll('#grid_yt_ref .box-wrapper'))) {
+                const id = wrap.id.replace('wrap_', '');
+                await upload(wrap.querySelector('.yt-thumb-preview'), `ytthumb_${id}`, 'youtube-thumbnail');
+            }
+        }
+
+        async function saveRemoteProject(showMessage = true) {
+            if (!remoteState.project || !remoteState.token) {
+                setSaveStatus('먼저 기획안을 열거나 새로 만들어 주세요.');
+                return false;
+            }
+            if (remoteState.saving) return false;
+            remoteState.saving = true;
+            try {
+                let content = collectRemoteContent();
+                await uploadRemoteAssets(content);
+                content = collectRemoteContent();
+                const firstAsset = Object.values(remoteState.assetByKey).find((asset) => asset.kind === 'reference' || asset.kind === 'thumbnail');
+                const creator = content.fields.creator || remoteState.project.student_name || '';
+                const result = await remoteApi('save', {
+                    projectId: remoteState.project.id,
+                    studentName: creator,
+                    title: remoteState.project.title || '새 기획안',
+                    status: remoteState.project.status || 'working',
+                    content,
+                    coverAssetPath: firstAsset?.storage_path || remoteState.project.cover_asset_path || ''
+                }, remoteState.token);
+                remoteState.project.student_name = creator;
+                if (firstAsset?.storage_path) remoteState.project.cover_asset_path = firstAsset.storage_path;
+                updateRemoteToolbar();
+                if (showMessage) setSaveStatus(`Supabase에 저장 완료 · ${formatSavedAt()}`);
+                return Boolean(result.saved);
+            } catch (error) {
+                setSaveStatus(`저장 실패 · ${error.message}`);
+                return false;
+            } finally {
+                remoteState.saving = false;
+            }
+        }
+
+        function scheduleRemoteSave() {
+            clearTimeout(remoteState.saveTimer);
+            remoteState.saveTimer = setTimeout(() => saveRemoteProject(), 900);
+            setSaveStatus('변경 내용을 저장할 준비 중입니다.');
+        }
+
+        async function toggleProjectStatus() {
+            if (!remoteState.project) return;
+            remoteState.project.status = remoteState.project.status === 'complete' ? 'working' : 'complete';
+            updateRemoteToolbar();
+            await saveRemoteProject();
+        }
+
+        async function showHome() {
+            clearTimeout(remoteState.saveTimer);
+            if (remoteState.project && remoteState.token) await saveRemoteProject(false);
+            document.body.classList.remove('editing');
+            remoteState.project = null;
+            remoteState.assetByKey = {};
+            if (!remoteState.admin) remoteState.token = '';
+            await loadHome();
+            setSaveStatus(remoteState.admin ? '관리자 모드로 기획안 목록을 확인하고 있습니다.' : '기획안을 선택하거나 새로 만들어 주세요.');
+        }
+
+        function openImageLightbox(src) {
+            if (!src) return;
+            const lightbox = document.getElementById('lightbox');
+            const image = document.getElementById('lightbox_image');
+            if (!lightbox || !image) return;
+            image.src = src;
+            lightbox.hidden = false;
+        }
+
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            if (lightbox) lightbox.hidden = true;
+        }
+
+        function initializeRemoteImageZoom() {
+            if (document.body.dataset.zoomReady === 'true') return;
+            document.body.dataset.zoomReady = 'true';
+            document.body.addEventListener('click', (event) => {
+                const image = event.target.closest('.box-item img, .typography-image-slot img, .yt-thumb-preview img');
+                if (!image) return;
+                event.stopPropagation();
+                openImageLightbox(image.src);
+            });
+        }
+
+        function formatSavedAt() {
+            return new Intl.DateTimeFormat('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(new Date());
+        }
+
+        function initializeTooltips() {
+            document.querySelectorAll('.help-tip').forEach((tip) => {
+                tip.addEventListener('mouseenter', () => tip.classList.add('is-open'));
+                tip.addEventListener('mouseleave', () => tip.classList.remove('is-open'));
+                tip.addEventListener('focus', () => tip.classList.add('is-open'));
+                tip.addEventListener('blur', () => tip.classList.remove('is-open'));
+            });
+        }
+
+        function autoSave() {
+            const data = {};
+            document.querySelectorAll('input, textarea, select').forEach((el) => {
+                if (!el.id || el.type === 'file') return;
+                data[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+            });
+            data.keywords_serialized = getTagValues().join(',');
+            persistSavedData(data);
+            if (remoteState.project && remoteState.token && !remoteState.loading) {
+                scheduleRemoteSave();
+            }
+            if (remoteState.project && remoteState.token) {
+                setSaveStatus('변경 내용을 저장할 준비 중입니다.');
+            } else if (document.body.getAttribute('data-is-exported') !== 'true') {
+                setSaveStatus('브라우저에 임시 저장됨 · 프로젝트 저장을 권장합니다.');
+            }
+        }
+
+        async function loadData() {
+            const data = readSavedData();
+            if (data) {
+                Object.entries(data).forEach(([key, value]) => {
+                    const el = document.getElementById(key);
+                    if (!el) return;
+                    if (el.type === 'checkbox') el.checked = Boolean(value);
+                    else el.value = value;
+                });
+
+                const dateInput = document.getElementById('date_value');
+                if (dateInput && !data.date_value && data.date_yy && data.date_mm && data.date_dd) {
+                    dateInput.value = `${String(data.date_yy).padStart(4, '0')}-${String(data.date_mm).padStart(2, '0')}-${String(data.date_dd).padStart(2, '0')}`;
+                }
+
+                if (data.keywords_serialized) loadTags(data.keywords_serialized);
+                toggleSection('sec_source', document.getElementById('chk_source'), false);
+                toggleSection('sec_filming', document.getElementById('chk_filming'), false);
+                toggleSection('sec_ai', document.getElementById('chk_ai'), false);
+            }
+
+            await loadGridImages('mood');
+            await loadGridImages('tref');
+            await loadYtGridData('ytref');
+            await loadTypographyImages();
+        }
+
+        function syncDirectInputMode(type, shouldSave = true) {
+            const select = document.getElementById(type + '_select');
+            const customBox = document.getElementById(type + '_custom_box');
+            const isCustom = select.value === 'custom';
+            select.style.display = isCustom ? 'none' : 'block';
+            customBox.style.display = isCustom ? 'flex' : 'none';
+            if (shouldSave) autoSave();
+        }
+
+        function handleDirectInput(type) {
+            syncDirectInputMode(type, false);
+            if (document.getElementById(type + '_select').value === 'custom') {
+                document.getElementById(type + '_custom').focus();
+            }
+            autoSave();
+        }
+
+        function cancelDirectInput(type) {
+            const select = document.getElementById(type + '_select');
+            document.getElementById(type + '_custom').value = '';
+            select.value = select.options[0].value;
+            syncDirectInputMode(type, false);
+            autoSave();
+        }
+
+        function toggleSection(id, chk, shouldSave = true) {
+            const checked = typeof chk === 'boolean' ? chk : Boolean(chk?.checked);
+            const section = document.getElementById(id);
+            section.classList.toggle('visible', checked);
+            if (checked) {
+                requestAnimationFrame(() => {
+                    section.querySelectorAll('textarea').forEach((textarea) => autoResizeTextarea(textarea, false));
+                });
+            }
+            if (shouldSave) autoSave();
+        }
+
+        function updateColor(el, boxId, shouldSave = true) {
+            const sanitized = normalizeHexInputValue(el.value);
+            if (el.value !== sanitized) el.value = sanitized;
+            const normalized = normalizeHex(sanitized);
+            if (normalized) {
+                document.getElementById(boxId).style.backgroundColor = normalized;
+            } else if (!sanitized) {
+                document.getElementById(boxId).style.backgroundColor = '';
+            }
+            if (shouldSave) autoSave();
+        }
+
+        function autoResizeTextarea(textarea, shouldSave = true) {
+            if (!textarea.dataset.minHeight) {
+                const inlineHeight = parseFloat(textarea.style.height);
+                const computedMin = parseFloat(window.getComputedStyle(textarea).minHeight);
+                const computedHeight = parseFloat(window.getComputedStyle(textarea).height);
+                textarea.dataset.minHeight = String(inlineHeight || computedMin || computedHeight || 88);
+            }
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.max(textarea.scrollHeight, parseFloat(textarea.dataset.minHeight)) + 'px';
+            if (shouldSave) autoSave();
+        }
+
+        function initializeTextareas() {
+            document.querySelectorAll('textarea').forEach((textarea) => autoResizeTextarea(textarea, false));
+        }
+
+        function handleTextareaInput(textarea) {
+            autoResizeTextarea(textarea);
+        }
+
+        function handleTagCompositionStart() {
+            isTagComposing = true;
+        }
+
+        function handleTagCompositionEnd() {
+            isTagComposing = false;
+            if (pendingTagSubmit) {
+                pendingTagSubmit = false;
+                setTimeout(() => submitTagInput(document.getElementById('keyword_input')), 0);
+            }
+        }
+
+        function handleTagInput(e) {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            if (isTagComposing || e.isComposing || e.keyCode === 229) {
+                pendingTagSubmit = true;
+                return;
+            }
+            submitTagInput(e.target);
+        }
+
+        function submitTagInput(input) {
+            if (!input) return;
+            const value = input.value.trim();
+            if (!value) return;
+            addTag(value);
+            input.value = '';
+            autoSave();
+        }
+
+        function addTag(text) {
+            const normalized = text.startsWith('#') ? text.trim() : '#' + text.trim();
+            if (!normalized || getTagValues().includes(normalized)) return;
+            const tag = createTagElement(normalized);
+            document.getElementById('tag_container').insertBefore(tag, document.getElementById('keyword_input'));
+        }
+
+        function removeTag(button) {
+            button.parentNode.remove();
+            autoSave();
+        }
+
+        function loadTags(str) {
+            str.split(',').forEach((tag) => {
+                if (tag) addTag(tag);
+            });
+        }
+
+        function initGrid(containerId, prefix) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            initializeReferenceGrid(container, prefix);
+            if (container.querySelectorAll('.reference-card').length === 0) createImageSlot(container, prefix);
+        }
+
+        function initializeEmbeddedReferenceGrids() {
+            ['mood', 'tref'].forEach((prefix) => {
+                const container = getGridContainer(prefix);
+                if (!container) return;
+                initializeReferenceGrid(container, prefix);
+                container.querySelectorAll('.reference-card').forEach((card) => wireReferenceCard(card, prefix));
+            });
+        }
+
+        function initializeReferenceGrid(container, prefix) {
+            if (container.dataset.referenceReady === 'true') return;
+            container.dataset.referenceReady = 'true';
+
+            container.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = Array.from(e.dataTransfer.types).includes('Files') ? 'copy' : 'move';
+                const card = e.target.closest('.reference-card');
+                if (card) card.classList.add('drag-over');
+            });
+            container.addEventListener('dragleave', (e) => {
+                if (!container.contains(e.relatedTarget)) {
+                    container.querySelectorAll('.drag-over').forEach((card) => card.classList.remove('drag-over'));
+                }
+            });
+            container.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                container.querySelectorAll('.drag-over').forEach((card) => card.classList.remove('drag-over'));
+                const files = Array.from(e.dataTransfer.files || []).filter((file) => file.type.startsWith('image/'));
+                if (files.length > 0) {
+                    await handleDroppedReferenceFiles(container, prefix, files, e.target.closest('.reference-card'));
+                    return;
+                }
+
+                const draggedId = e.dataTransfer.getData('text/reference-card');
+                const dragged = document.getElementById(draggedId);
+                const target = e.target.closest('.reference-card');
+                if (!dragged || !target || dragged === target || dragged.parentElement !== container) return;
+                const targetRect = target.getBoundingClientRect();
+                const insertBefore = e.clientY < targetRect.top + targetRect.height / 2;
+                container.insertBefore(dragged, insertBefore ? target : target.nextElementSibling);
+                await saveGridData(prefix);
+                autoSave();
+            });
+        }
+
+        function wireReferenceCard(card, prefix) {
+            card.draggable = true;
+            card.addEventListener('dragstart', (e) => {
+                if (!card.classList.contains('is-filled') || e.target.closest('textarea, button')) {
+                    e.preventDefault();
+                    return;
+                }
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/reference-card', card.id);
+                card.classList.add('dragging');
+            });
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+                card.parentElement?.querySelectorAll('.drag-over').forEach((item) => item.classList.remove('drag-over'));
+            });
+            card.querySelector('.reference-memo')?.addEventListener('input', async () => {
+                await saveGridData(prefix);
+                autoSave();
+            });
+        }
+
+        function createImageSlot(container, prefix, memo = '', src = '', fixedId = '') {
+            initializeReferenceGrid(container, prefix);
+            const id = fixedId || (prefix + '_' + Date.now() + Math.floor(Math.random() * 1000));
+            const card = document.createElement('div');
+            card.className = 'reference-card';
+            card.id = 'refcard_' + id;
+
+            const box = document.createElement('div');
+            box.className = 'box-item';
+            box.id = id;
+            box.setAttribute('onclick', `openFileSelector('${id}')`);
+            renderImageSlot(box, id, prefix, src);
+            card.appendChild(box);
+
+            const memoInput = document.createElement('textarea');
+            memoInput.className = 'reference-memo';
+            memoInput.placeholder = '이 이미지를 넣은 이유와 참고하고 싶은 부분을 적어보세요.';
+            memoInput.value = memo;
+            card.appendChild(memoInput);
+            card.classList.toggle('is-filled', Boolean(src));
+            container.appendChild(card);
+            wireReferenceCard(card, prefix);
+            return card;
+        }
+
+        function ensureTrailingReferenceSlot(container, prefix) {
+            const cards = Array.from(container.querySelectorAll('.reference-card'));
+            if (cards.length === 0 || cards[cards.length - 1].classList.contains('is-filled')) {
+                createImageSlot(container, prefix);
+            }
+        }
+
+        function openFileSelector(id) {
+            currentUploadTarget = id;
+            document.getElementById('fileInput').click();
+        }
+
+        document.getElementById('fileInput').onchange = function(e) {
+            const file = e.target.files[0];
+            const targetId = currentUploadTarget;
+            currentUploadTarget = null;
+
+            if (!file || !targetId) {
+                e.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                const box = document.getElementById(targetId);
+                if (!box) {
+                    e.target.value = '';
+                    return;
+                }
+
+                const prefix = targetId.split('_')[0];
+                const comp = await compressImage(ev.target.result);
+                if (targetId.startsWith('typo_')) {
+                    renderTypographyImage(box, targetId, comp);
+                    await saveTypographyImages();
+                    autoSave();
+                    e.target.value = '';
+                    return;
+                }
+                renderImageSlot(box, targetId, prefix, comp);
+                const card = box.closest('.reference-card');
+                if (card) card.classList.add('is-filled');
+                await saveGridData(prefix);
+                if (card) ensureTrailingReferenceSlot(card.parentElement, prefix);
+                autoSave();
+                e.target.value = '';
+            };
+            reader.readAsDataURL(file);
+        };
+
+        async function removeImage(e, id, prefix) {
+            e.stopPropagation();
+            const box = document.getElementById(id);
+            const card = box.closest('.reference-card');
+            const parent = card?.parentElement;
+            if (!box || !card || !parent) return;
+            if (parent.querySelectorAll('.reference-card').length > 1) {
+                card.remove();
+            } else {
+                renderImageSlot(box, id, prefix);
+                card.classList.remove('is-filled');
+                const memo = card.querySelector('.reference-memo');
+                if (memo) memo.value = '';
+            }
+            await saveGridData(prefix);
+            autoSave();
+        }
+
+        async function saveGridData(prefix) {
+            const container = getGridContainer(prefix);
+            if (!container) return;
+            const items = Array.from(container.querySelectorAll('.reference-card'))
+                .map((card) => ({
+                    id: card.id.replace('refcard_', ''),
+                    src: card.querySelector('.has-img img')?.src || '',
+                    memo: card.querySelector('.reference-memo')?.value || ''
+                }))
+                .filter((item) => item.src);
+            await ImageStorage.set(GRID_STORAGE_PREFIX + prefix, items);
+        }
+
+        async function handleDroppedReferenceFiles(container, prefix, files, targetCard) {
+            let card = targetCard && !targetCard.classList.contains('is-filled') ? targetCard : null;
+            for (const file of files) {
+                if (!card) {
+                    card = Array.from(container.querySelectorAll('.reference-card')).find((item) => !item.classList.contains('is-filled')) || null;
+                }
+                if (!card) card = createImageSlot(container, prefix);
+                const dataUrl = await readFileAsDataUrl(file);
+                const compressed = await compressImage(dataUrl);
+                const box = card.querySelector('.box-item');
+                renderImageSlot(box, box.id, prefix, compressed);
+                card.classList.add('is-filled');
+                card = null;
+            }
+            ensureTrailingReferenceSlot(container, prefix);
+            await saveGridData(prefix);
+            autoSave();
+        }
+
+        function readFileAsDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function openTypographyFileSelector(id) {
+            currentUploadTarget = id;
+            document.getElementById('fileInput').click();
+        }
+
+        function initializeTypographyDropSlots() {
+            document.querySelectorAll('.typography-image-slot').forEach((box) => {
+                if (box.dataset.dropReady === 'true') return;
+                box.dataset.dropReady = 'true';
+
+                box.addEventListener('dragover', (e) => {
+                    if (!Array.from(e.dataTransfer.types).includes('Files')) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.dataTransfer.dropEffect = 'copy';
+                    box.classList.add('drag-over');
+                });
+                box.addEventListener('dragleave', (e) => {
+                    if (!box.contains(e.relatedTarget)) box.classList.remove('drag-over');
+                });
+                box.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    box.classList.remove('drag-over');
+                    const file = Array.from(e.dataTransfer.files || []).find((item) => item.type.startsWith('image/'));
+                    if (!file) return;
+
+                    const src = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+                    const compressed = await compressImage(src);
+                    renderTypographyImage(box, box.id, compressed);
+                    await saveTypographyImages();
+                    autoSave();
+                });
+            });
+        }
+
+        function renderTypographyImage(box, id, src = '') {
+            if (!box) return;
+            box.textContent = '';
+            box.classList.toggle('is-filled', Boolean(src));
+            if (src) {
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = '서체 캡처 이미지';
+                box.appendChild(img);
+            } else {
+                const label = document.createElement('span');
+                label.textContent = '+ 서체 캡처 추가';
+                box.appendChild(label);
+            }
+            box.appendChild(buildActionButton('삭제', `removeTypographyImage(event, '${id}')`, 'btn-remove'));
+        }
+
+        async function saveTypographyImages() {
+            const images = {};
+            document.querySelectorAll('.typography-image-slot').forEach((box) => {
+                const src = box.querySelector('img')?.src || '';
+                if (src) images[box.id] = src;
+            });
+            await ImageStorage.set(TYPOGRAPHY_IMAGE_STORAGE_KEY, images);
+        }
+
+        async function loadTypographyImages() {
+            const saved = await ImageStorage.get(TYPOGRAPHY_IMAGE_STORAGE_KEY);
+            document.querySelectorAll('.typography-image-slot').forEach((box) => {
+                renderTypographyImage(box, box.id, saved?.[box.id] || '');
+            });
+        }
+
+        async function removeTypographyImage(e, id) {
+            e.stopPropagation();
+            renderTypographyImage(document.getElementById(id), id);
+            await saveTypographyImages();
+            autoSave();
+        }
+
+        async function loadGridImages(prefix) {
+            const saved = await ImageStorage.get(GRID_STORAGE_PREFIX + prefix);
+            const container = getGridContainer(prefix);
+            if (!container) return;
+            initializeReferenceGrid(container, prefix);
+
+            if (saved && saved.length > 0) {
+                container.innerHTML = '';
+                saved.forEach((item) => {
+                    const normalized = typeof item === 'string' ? { src: item, memo: '' } : item;
+                    createImageSlot(container, prefix, normalized.memo || '', normalized.src || '');
+                });
+                createImageSlot(container, prefix);
+            } else {
+                initGrid(container.id, prefix);
+            }
+        }
+
+        function initYtGrid(containerId, prefix) {
+            const container = document.getElementById(containerId);
+            if (container.children.length === 0) createYtSlot(container, prefix);
+        }
+
+        function createYtSlot(container, prefix) {
+            const id = prefix + '_' + Date.now() + Math.floor(Math.random() * 1000);
+            container.appendChild(createYtBox(id, prefix));
+        }
+
+        function ensureTrailingYtSlot(container, prefix) {
+            const wraps = Array.from(container.querySelectorAll('.box-wrapper'));
+            if (wraps.length === 0 || wraps[wraps.length - 1].classList.contains('is-filled')) {
+                createYtSlot(container, prefix);
+            }
+        }
+
+        async function fetchYtData(input, id, prefix) {
+            const vid = input.value.match(/(?:v=|be\/|shorts\/)([\w-]{11})/)?.[1];
+            if (!vid) {
+                renderYtPreview(id, prefix);
+                document.getElementById('yt_title_' + id).value = '';
+                await saveYtGridData(prefix);
+                autoSave();
+                return;
+            }
+
+            const thumbUrl = `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
+            renderYtPreview(id, prefix, thumbUrl);
+            try {
+                const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${vid}&format=json`);
+                const data = await res.json();
+                document.getElementById('yt_title_' + id).value = data.title || '';
+            } catch (error) {
+                console.warn('유튜브 정보를 가져오지 못했습니다.', error);
+            }
+
+            const embeddedThumb = await fetchImageAsDataUrl(thumbUrl);
+            if (embeddedThumb) renderYtPreview(id, prefix, embeddedThumb);
+
+            const wrap = document.getElementById('wrap_' + id);
+            await saveYtGridData(prefix);
+            if (wrap === wrap.parentElement.lastElementChild) createYtSlot(wrap.parentElement, prefix);
+            autoSave();
+        }
+
+        async function fetchImageAsDataUrl(url) {
+            try {
+                const response = await fetch(url, { mode: 'cors' });
+                if (!response.ok) return '';
+                const blob = await response.blob();
+                return await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => resolve('');
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                return '';
+            }
+        }
+
+        async function removeYtBox(e, id, prefix) {
+            e.stopPropagation();
+            const wrap = document.getElementById('wrap_' + id);
+            if (wrap.parentElement.children.length > 1) {
+                wrap.remove();
+            } else {
+                document.getElementById('yt_title_' + id).value = '';
+                document.getElementById('yt_url_' + id).value = '';
+                renderYtPreview(id, prefix);
+            }
+            await saveYtGridData(prefix);
+            autoSave();
+        }
+
+        async function saveYtGridData(prefix) {
+            const wraps = document.querySelectorAll('#grid_yt_ref .box-wrapper');
+            const items = Array.from(wraps)
+                .map((wrap) => ({
+                    id: wrap.id.replace('wrap_', ''),
+                    thumb: wrap.querySelector('img')?.src || '',
+                    title: wrap.querySelector('.yt-title-input').value,
+                    url: wrap.querySelector('.yt-url-input').value
+                }))
+                .filter((item) => item.url);
+            await ImageStorage.set(YT_GRID_STORAGE_PREFIX + prefix, items);
+        }
+
+        async function loadYtGridData(prefix) {
+            const saved = await ImageStorage.get(YT_GRID_STORAGE_PREFIX + prefix);
+            const container = document.getElementById('grid_yt_ref');
+
+            if (saved && saved.length > 0) {
+                container.innerHTML = '';
+                saved.forEach((item) => {
+                    container.appendChild(createYtBox(item.id, prefix, item));
+                });
+                createYtSlot(container, prefix);
+            } else {
+                initYtGrid('grid_yt_ref', 'ytref');
+            }
+        }
+
+        function downloadPalette() {
+            const canvas = document.getElementById('paletteCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 1000;
+            canvas.height = 300;
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, 1000, 300);
+
+            ['hex1', 'hex2', 'hex3', 'hex4', 'hex5'].forEach((id, i) => {
+                const final = normalizeHex(document.getElementById(id).value) || '#FFFFFF';
+                ctx.fillStyle = final;
+                ctx.fillRect(i * 200, 0, 200, 200);
+                ctx.fillStyle = '#333';
+                ctx.font = '20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(final.toUpperCase(), i * 200 + 100, 240);
+                ctx.font = '14px sans-serif';
+                ctx.fillText(['Main', 'Sub', 'Point1', 'Point2', 'Point3'][i], i * 200 + 100, 270);
+            });
+
+            const link = document.createElement('a');
+            link.download = 'color_palette.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function resetAll() {
+            if (!confirm('모든 데이터를 초기화하시겠습니까?')) return;
+            localStorage.removeItem(STORAGE_KEY);
+            if (document.body.getAttribute('data-is-exported') === 'true') {
+                resetEmbeddedForm();
+                setSaveStatus('새 기획안으로 초기화되었습니다. 작성 후 프로젝트를 저장하세요.');
+                return;
+            }
+            if (remoteState.project) {
+                resetEmbeddedForm();
+                setSaveStatus('현재 기획안의 입력 내용을 초기화했습니다. 저장을 누르면 반영됩니다.');
+                return;
+            }
+            Promise.resolve(ImageStorage.clear()).finally(() => location.reload());
+        }
+
+        function resetEmbeddedForm() {
+            document.querySelectorAll('input, textarea, select').forEach((el) => {
+                if (el.type === 'checkbox') el.checked = false;
+                else if (el.tagName === 'SELECT') el.selectedIndex = 0;
+                else if (el.type !== 'file') el.value = '';
+            });
+            const dateInput = document.getElementById('date_value');
+            if (dateInput) dateInput.value = '2026-01-01';
+            document.querySelectorAll('#tag_container .tag').forEach((tag) => tag.remove());
+            document.querySelectorAll('.hidden-section').forEach((section) => section.classList.remove('visible'));
+            document.querySelectorAll('.color-box').forEach((box) => box.style.backgroundColor = '');
+
+            ['mood', 'tref'].forEach((prefix) => {
+                const container = getGridContainer(prefix);
+                if (container) {
+                    container.innerHTML = '';
+                    initGrid(container.id, prefix);
+                }
+            });
+            const ytContainer = document.getElementById('grid_yt_ref');
+            if (ytContainer) {
+                ytContainer.innerHTML = '';
+                initYtGrid('grid_yt_ref', 'ytref');
+            }
+            document.querySelectorAll('.typography-image-slot').forEach((box) => {
+                renderTypographyImage(box, box.id);
+            });
+            initializeTypographyDropSlots();
+            ['cat', 'res', 'fps'].forEach((type) => syncDirectInputMode(type, false));
+            initializeTextareas();
+        }
+
+        function printDocument() {
+            initializeTextareas();
+            syncExportableState();
+            window.print();
+        }
+
+        function getProjectFileName() {
+            const projectName = sanitizeFileName(document.getElementById('youtube_title').value);
+            return `interactive-planner-v4-${projectName}.html`;
+        }
+
+        function normalizeHtmlFileName(name) {
+            const safeName = sanitizeFileName(name).trim() || '영상기획안';
+            return safeName.toLowerCase().endsWith('.html') ? safeName : `${safeName}.html`;
+        }
+
+        function buildExportHtml() {
+            syncExportableState();
+            const previousState = document.body.getAttribute('data-is-exported');
+            document.body.setAttribute('data-is-exported', 'true');
+            const html = document.documentElement.outerHTML;
+            if (previousState === null) document.body.removeAttribute('data-is-exported');
+            else document.body.setAttribute('data-is-exported', previousState);
+            return html;
+        }
+
+        async function requestWritePermission(handle) {
+            const options = { mode: 'readwrite' };
+            if (await handle.queryPermission(options) !== 'granted') {
+                return (await handle.requestPermission(options)) === 'granted';
+            }
+            return true;
+        }
+
+        async function writeHtmlFile(handle, html) {
+            if (!await requestWritePermission(handle)) throw new Error('파일 쓰기 권한이 필요합니다.');
+            const writable = await handle.createWritable();
+            await writable.write(html);
+            await writable.close();
+        }
+
+        function downloadHtmlFile(html, fileName) {
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function saveProjectFile() {
+            const html = buildExportHtml();
+            try {
+                if (!window.showOpenFilePicker || !window.FileSystemFileHandle) {
+                    downloadHtmlFile(html, getProjectFileName());
+                    setSaveStatus(`브라우저 호환 모드로 HTML 저장 완료 · ${formatSavedAt()}`);
+                    return;
+                }
+                if (!projectFileHandle) {
+                    const handles = await window.showOpenFilePicker({
+                        multiple: false,
+                        types: [{ description: 'HTML 파일', accept: { 'text/html': ['.html', '.htm'] } }]
+                    });
+                    projectFileHandle = handles[0];
+                }
+                await writeHtmlFile(projectFileHandle, html);
+                setSaveStatus(`현재 파일에 저장 완료 · ${formatSavedAt()} · ${projectFileHandle.name}`);
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    setSaveStatus('파일 선택을 취소했습니다.');
+                    return;
+                }
+                console.warn('현재 파일 저장에 실패했습니다.', error);
+                setSaveStatus('현재 파일 저장에 실패했습니다. 별도 파일 저장을 이용해 주세요.');
+            }
+        }
+
+        async function saveHtmlCopy() {
+            const defaultName = getProjectFileName();
+            const requestedName = window.prompt('별도 저장할 HTML 파일 이름을 입력하세요.', defaultName);
+            if (requestedName === null) return;
+            const fileName = normalizeHtmlFileName(requestedName);
+            const html = buildExportHtml();
+            try {
+                if (!window.showSaveFilePicker) {
+                    downloadHtmlFile(html, fileName);
+                } else {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: fileName,
+                        types: [{ description: 'HTML 파일', accept: { 'text/html': ['.html', '.htm'] } }]
+                    });
+                    await writeHtmlFile(handle, html);
+                }
+                setSaveStatus(`별도 HTML 저장 완료 · ${formatSavedAt()} · ${fileName}`);
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    setSaveStatus('별도 파일 저장을 취소했습니다.');
+                    return;
+                }
+                console.warn('별도 HTML 저장에 실패했습니다.', error);
+                setSaveStatus('별도 HTML 저장에 실패했습니다.');
+            }
+        }
+    </script>
+</body>
+</html>
+
