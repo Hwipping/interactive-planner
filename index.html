@@ -572,17 +572,16 @@
             <tr>
                 <th>제작자</th>
                 <td><input type="text" id="creator" placeholder="이름 입력" oninput="handlePlannerMetaInput()"></td>
-                <th>기획안 제목</th>
-                <td><input type="text" id="planner_title" placeholder="기획안 제목 입력" oninput="handlePlannerMetaInput()"></td>
-            </tr>
-            <tr>
                 <th>작성일</th>
                 <td>
                     <div class="date-row">
                         <input type="date" id="date_value" value="2026-01-01" onchange="autoSave()" oninput="autoSave()" aria-label="작성일">
                     </div>
                 </td>
-                <td colspan="2"></td>
+            </tr>
+            <tr>
+                <th>기획안 제목</th>
+                <td colspan="3"><input type="text" id="planner_title" placeholder="기획안 제목 입력" oninput="handlePlannerMetaInput()"></td>
             </tr>
             <tr>
                 <th>영상 카테고리</th>
