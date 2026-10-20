@@ -446,6 +446,68 @@
         .project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 16px; }
         .remote-project-label { display: none; }
     }
+
+    /* 편집 화면 상단바 */
+    body.remote-app.editing .toolbar {
+        display: grid;
+        grid-template-columns: auto auto minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        background: #252a2e;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, .16);
+    }
+    .toolbar-group { display: flex; align-items: center; gap: 8px; }
+    .toolbar-actions { padding-left: 10px; border-left: 1px solid rgba(255,255,255,.14); }
+    .toolbar-context { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
+    body.remote-app.editing .toolbar .btn-action {
+        min-height: 38px;
+        padding: 8px 13px;
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 7px;
+        background: #495057;
+        color: #f8f9fa;
+        font-size: 13px;
+        box-shadow: none;
+    }
+    body.remote-app.editing .toolbar .btn-action:hover { background: #5c636a; transform: none; }
+    body.remote-app.editing .toolbar .toolbar-icon {
+        width: 42px;
+        padding: 0;
+        font-size: 23px;
+        line-height: 1;
+        background: transparent;
+        border-color: transparent;
+    }
+    body.remote-app.editing .toolbar .toolbar-icon:hover { background: #343a40; }
+    body.remote-app.editing .toolbar .remote-status-button.complete { background: #527864; }
+    body.remote-app.editing .toolbar .save-status { min-width: 0; color: #ced4da; white-space: nowrap; }
+    .section-subtitle-actions,
+    .resource-links { display: inline-flex; align-items: center; gap: 6px; }
+    .resource-links a {
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #d7dce0;
+        border-radius: 6px;
+        background: #fff;
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .resource-links a:hover,
+    .resource-links a:focus-visible {
+        border-color: #868e96;
+        box-shadow: 0 3px 8px rgba(33,37,41,.14);
+        transform: translateY(-1px);
+    }
+    .resource-links img { width: 16px; height: 16px; object-fit: contain; border-radius: 3px; }
+    .section-subtitle-actions .btn-download-palette { margin-left: 3px; }
+    @media (max-width: 900px) {
+        body.remote-app.editing .toolbar { grid-template-columns: auto 1fr; }
+        .toolbar-context { grid-column: 1 / -1; justify-content: center; }
+        .toolbar-actions { flex-wrap: wrap; border-left: 0; padding-left: 0; }
+    }
 </style>
 </head>
 <body class="remote-app" data-is-exported="false" data-project-version="4">
@@ -476,15 +538,19 @@
     </main>
 
     <div class="toolbar">
-        <button class="btn-action btn-reset" onclick="showHome()">기획안 목록</button>
-        <button class="btn-action btn-reset" onclick="resetAll()">새로 작성하기</button>
-        <button class="btn-action btn-save-html" onclick="saveRemoteProject()" title="현재 기획안을 Supabase에 저장합니다.">저장</button>
-        <button class="btn-action btn-save-copy" onclick="saveHtmlCopy()" title="새 HTML 파일로 별도 저장합니다.">별도 파일로 저장</button>
-        <button class="btn-action btn-print" onclick="printDocument()" title="브라우저 인쇄 설정에서 머리말 및 꼬리말 해제를 권장합니다.">PDF로 저장 / 인쇄</button>
-        <button id="status_button" class="btn-action remote-status-button" onclick="toggleProjectStatus()">작업중</button>
-        <button class="btn-action btn-reset" onclick="showChangePassword()">비밀번호 변경</button>
-        <span id="remote_project_label" class="remote-project-label"></span>
-        <span class="save-status" id="save_status" role="status" aria-live="polite">저장본 파일로 작업하세요.</span>
+        <div class="toolbar-group toolbar-nav">
+            <button class="btn-action toolbar-icon" onclick="showHome()" title="기획안 목록으로 돌아가기" aria-label="기획안 목록으로 돌아가기">←</button>
+        </div>
+        <div class="toolbar-group toolbar-actions">
+            <button class="btn-action btn-save-html" onclick="saveRemoteProject()" title="현재 기획안을 Supabase에 저장합니다.">저장</button>
+            <button class="btn-action btn-print" onclick="printDocument()" title="브라우저 인쇄 설정에서 머리말 및 꼬리말 해제를 권장합니다.">PDF 저장</button>
+            <button id="status_button" class="btn-action remote-status-button" onclick="toggleProjectStatus()">작업중</button>
+            <button class="btn-action btn-reset" onclick="showChangePassword()">비밀번호 변경</button>
+        </div>
+        <div class="toolbar-context">
+            <span id="remote_project_label" class="remote-project-label"></span>
+            <span class="save-status" id="save_status" role="status" aria-live="polite">저장본 파일로 작업하세요.</span>
+        </div>
     </div>
 
     <div class="a4-page">
@@ -666,7 +732,15 @@
         <div class="print-block">
         <div class="section-subtitle">
             <span class="section-title-content">🎨 컬러 가이드 (Color Palette) <span class="help-tip" tabindex="0" role="img" aria-label="컬러 가이드 작성 가이드" data-tooltip="영상 전체에서 반복해서 사용할 대표 색상을 정해보세요. 배경, 자막, 포인트 요소의 색을 구분하면 톤앤매너가 선명해집니다.">?</span></span>
-            <button class="btn-action btn-download-palette" onclick="downloadPalette()">팔레트 이미지 저장</button>
+            <div class="section-subtitle-actions">
+                <nav class="resource-links" aria-label="컬러 팔레트 참고 사이트">
+                    <a href="https://coolors.co/" target="_blank" rel="noopener noreferrer" title="Coolors - 컬러 팔레트 생성기"><img src="https://coolors.co/favicon.ico" alt="Coolors"></a>
+                    <a href="https://color.adobe.com/create/color-wheel" target="_blank" rel="noopener noreferrer" title="Adobe Color - 컬러 휠"><img src="https://color.adobe.com/favicon.ico" alt="Adobe Color"></a>
+                    <a href="https://colorhunt.co/" target="_blank" rel="noopener noreferrer" title="Color Hunt - 컬러 팔레트"><img src="https://colorhunt.co/favicon.ico" alt="Color Hunt"></a>
+                    <a href="https://paletton.com/" target="_blank" rel="noopener noreferrer" title="Paletton - 색상 조합 도구"><img src="https://paletton.com/favicon.ico" alt="Paletton"></a>
+                </nav>
+                <button class="btn-action btn-download-palette" onclick="downloadPalette()">팔레트 이미지 저장</button>
+            </div>
         </div>
         <div class="color-swatch-group" id="palette_container">
             <div class="swatch-item">
@@ -708,7 +782,16 @@
         </div>
 
         <div class="print-block">
-        <div class="section-subtitle"><span>🔤 서체 가이드 (Typography)</span></div>
+        <div class="section-subtitle">
+            <span>🔤 서체 가이드 (Typography)</span>
+            <nav class="resource-links" aria-label="서체 다운로드 사이트">
+                <a href="https://noonnu.cc/" target="_blank" rel="noopener noreferrer" title="눈누 - 한글 폰트"><img src="https://noonnu.cc/favicon.ico" alt="눈누"></a>
+                <a href="https://fonts.google.com/" target="_blank" rel="noopener noreferrer" title="Google Fonts - 영문 및 다국어 폰트"><img src="https://fonts.google.com/favicon.ico" alt="Google Fonts"></a>
+                <a href="https://www.dafont.com/" target="_blank" rel="noopener noreferrer" title="DaFont - 다양한 영문 폰트"><img src="https://www.dafont.com/favicon.ico" alt="DaFont"></a>
+                <a href="https://www.fontsquirrel.com/" target="_blank" rel="noopener noreferrer" title="Font Squirrel - 무료 상업용 폰트"><img src="https://www.fontsquirrel.com/favicon.ico" alt="Font Squirrel"></a>
+                <a href="https://fonts.adobe.com/" target="_blank" rel="noopener noreferrer" title="Adobe Fonts - 크리에이티브 폰트"><img src="https://fonts.adobe.com/favicon.ico" alt="Adobe Fonts"></a>
+            </nav>
+        </div>
         <div class="typography-list" id="typography_list">
             <div class="typography-item">
                 <div class="typography-info">
@@ -742,7 +825,12 @@
         </div>
 
         <div class="print-block print-block--grid">
-        <div class="section-subtitle"><span>🖼️ 레퍼런스 이미지 (Moodboard)</span></div>
+        <div class="section-subtitle">
+            <span>🖼️ 레퍼런스 이미지 (Moodboard)</span>
+            <nav class="resource-links" aria-label="유튜브 화면 캡처 도구">
+                <a href="https://chromewebstore.google.com/detail/screenshot-youtube/gjoijpfmdhbjkkgnmahganhoinjjpohk" target="_blank" rel="noopener noreferrer" title="Screenshot YouTube - 유튜브 화면 캡처 확장 프로그램"><img src="https://chromewebstore.google.com/favicon.ico" alt="Screenshot YouTube"></a>
+            </nav>
+        </div>
         <div class="grid-container" id="grid_mood">
             <!-- 동적 이미지 슬롯 생성 -->
         </div>
