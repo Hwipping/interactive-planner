@@ -1469,6 +1469,7 @@
             const target = document.getElementById('modal_content');
             if (!modal || !target) return;
             if (modal.hidden) modalReturnFocus = document.activeElement;
+            target.onpaste = null;
             target.innerHTML = content;
             target.querySelectorAll('input[type="password"]').forEach(input => input.autocomplete = /next|modal_password/.test(input.id) ? 'new-password' : 'current-password');
             target.querySelectorAll('[data-modal-message]').forEach(el => el.setAttribute('role', 'alert'));
@@ -2275,46 +2276,125 @@
         }
 
         function openFileSelector(id) {
+            showImageInsertDialog(id);
+        }
+
+        function showImageInsertDialog(id) {
+            showModal(`
+                <h2 id="modal_title">이미지 추가</h2>
+                <p>복사한 이미지 또는 이미지 주소를 붙여넣거나, 파일을 업로드하세요. 이미지는 실제 파일로 가져와 저장합니다.</p>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;margin:16px 0">
+                    <button type="button" id="paste_image_button" class="app-button primary">클립보드에서 붙여넣기</button>
+                    <button type="button" id="upload_image_button" class="app-button ghost">이미지 업로드</button>
+                </div>
+                <label for="image_url_input">이미지 URL</label>
+                <input type="url" id="image_url_input" style="width:100%;box-sizing:border-box;border:1px solid #d6dbe0;border-radius:8px;padding:10px;background:#f7f8f9" placeholder="https://… (이미지 파일의 주소)">
+                <button type="button" id="import_image_url" class="app-button ghost" style="margin-top:10px">주소에서 이미지 가져오기</button>
+                <p class="field-help">이 창에서 Ctrl+V 또는 ⌘V로 붙여넣어도 됩니다. 웹페이지 주소가 아닌 이미지 주소를 사용하세요. 가져오기가 차단되면 원본 이미지를 복사하거나 파일로 업로드하세요.</p>
+                <p id="image_import_message" role="status" aria-live="polite"></p>
+            `);
+            const marker = document.getElementById('image_import_message');
+            const project = remoteState.project;
+            let busy = false;
+            const active = () => !document.getElementById('app_modal').hidden && document.getElementById('image_import_message') === marker && remoteState.project === project;
+            const run = async (getBlob) => {
+                if (busy) return;
+                busy = true;
+                marker.textContent = '이미지를 가져오는 중…';
+                try {
+                    const blob = await getBlob();
+                    if (!active()) return;
+                    await insertImageBlob(id, blob, active);
+                    if (active()) closeModal();
+                } catch (error) {
+                    if (active()) marker.textContent = error.name === 'NotAllowedError'
+                        ? '클립보드 접근이 허용되지 않았습니다. 이 창에서 Ctrl+V / ⌘V를 누르거나 이미지 업로드를 이용하세요.'
+                        : error.message;
+                } finally { busy = false; }
+            };
+            document.getElementById('paste_image_button').onclick = () => run(async () => {
+                if (!navigator.clipboard?.read) throw new Error('이 브라우저에서는 버튼으로 클립보드를 읽을 수 없습니다. Ctrl+V / ⌘V 또는 이미지 업로드를 이용하세요.');
+                const items = await navigator.clipboard.read();
+                for (const item of items) {
+                    const type = item.types.find(type => type.startsWith('image/'));
+                    if (type) return item.getType(type);
+                }
+                for (const item of items) {
+                    if (item.types.includes('text/plain')) return fetchImageBlob(await (await item.getType('text/plain')).text());
+                }
+                throw new Error('클립보드에 이미지나 이미지 주소가 없습니다.');
+            });
+            document.getElementById('import_image_url').onclick = () => run(() => fetchImageBlob(document.getElementById('image_url_input').value));
+            document.getElementById('upload_image_button').onclick = () => {
+                if (busy) return;
+                closeModal();
+                selectImageFile(id);
+            };
+            document.getElementById('modal_content').onpaste = event => {
+                if (!active()) return;
+                const file = Array.from(event.clipboardData?.files || []).find(file => file.type.startsWith('image/'));
+                const text = event.clipboardData?.getData('text/plain')?.trim();
+                if (!file && !text) return;
+                event.preventDefault();
+                run(() => file || fetchImageBlob(text));
+            };
+        }
+
+        async function fetchImageBlob(text) {
+            let url;
+            try { url = new URL(text.trim()); } catch { throw new Error('올바른 이미지 URL을 복사해 주세요.'); }
+            if (url.protocol !== 'https:' || url.username || url.password) throw new Error('로그인이 필요하지 않은 https 이미지 주소를 사용해 주세요.');
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 15000);
+            try {
+                const response = await fetch(url.href, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer', signal: controller.signal });
+                if (!response.ok) throw new Error('이미지를 다운로드할 수 없습니다.');
+                if (!response.headers.get('content-type')?.startsWith('image/')) throw new Error('이미지 파일 주소가 아닙니다. 이미지에서 우클릭 후 ‘이미지 주소 복사’를 선택해 주세요.');
+                if (Number(response.headers.get('content-length')) > 20 * 1024 * 1024) throw new Error('20MB 이하의 이미지를 사용해 주세요.');
+                return await response.blob();
+            } catch (error) {
+                if (error.name === 'TypeError' || error.name === 'AbortError') throw new Error('원본 사이트의 접근 제한 또는 연결 문제로 이미지를 가져오지 못했습니다. ‘이미지 복사’ 후 붙여넣거나 파일로 업로드해 주세요.');
+                throw error;
+            } finally { clearTimeout(timer); }
+        }
+
+        async function insertImageBlob(targetId, blob, active = () => true) {
+            if (!blob?.type.startsWith('image/') || !blob.size) throw new Error('유효한 이미지 파일을 선택해 주세요.');
+            if (blob.size > 20 * 1024 * 1024) throw new Error('20MB 이하의 이미지를 사용해 주세요.');
+            const data = await readFileAsDataUrl(blob);
+            const test = new Image();
+            test.src = data;
+            try { await test.decode(); } catch { throw new Error('이미지를 읽을 수 없습니다. PNG, JPG 또는 WebP 파일을 이용하세요.'); }
+            const compressed = await compressImage(data);
+            const box = document.getElementById(targetId);
+            if (!box || !active()) return;
+            if (targetId.startsWith('typo_')) {
+                renderTypographyImage(box, targetId, compressed);
+                await saveTypographyImages();
+            } else {
+                const prefix = targetId.split('_')[0];
+                renderImageSlot(box, targetId, prefix, compressed);
+                const card = box.closest('.reference-card');
+                card?.classList.add('is-filled');
+                await saveGridData(prefix);
+                if (card) ensureTrailingReferenceSlot(card.parentElement, prefix);
+            }
+            autoSave();
+        }
+
+        function selectImageFile(id) {
             currentUploadTarget = id;
             document.getElementById('fileInput').click();
         }
 
-        document.getElementById('fileInput').onchange = function(e) {
+        document.getElementById('fileInput').onchange = async function(e) {
             const file = e.target.files[0];
             const targetId = currentUploadTarget;
             currentUploadTarget = null;
-
-            if (!file || !targetId) {
-                e.target.value = '';
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = async (ev) => {
-                const box = document.getElementById(targetId);
-                if (!box) {
-                    e.target.value = '';
-                    return;
-                }
-
-                const prefix = targetId.split('_')[0];
-                const comp = await compressImage(ev.target.result);
-                if (targetId.startsWith('typo_')) {
-                    renderTypographyImage(box, targetId, comp);
-                    await saveTypographyImages();
-                    autoSave();
-                    e.target.value = '';
-                    return;
-                }
-                renderImageSlot(box, targetId, prefix, comp);
-                const card = box.closest('.reference-card');
-                if (card) card.classList.add('is-filled');
-                await saveGridData(prefix);
-                if (card) ensureTrailingReferenceSlot(card.parentElement, prefix);
-                autoSave();
-                e.target.value = '';
-            };
-            reader.readAsDataURL(file);
+            e.target.value = '';
+            if (!file || !targetId) return;
+            try { await insertImageBlob(targetId, file); }
+            catch (error) { setSaveStatus(error.message); }
         };
 
         async function removeImage(e, id, prefix) {
@@ -2377,8 +2457,7 @@
         }
 
         function openTypographyFileSelector(id) {
-            currentUploadTarget = id;
-            document.getElementById('fileInput').click();
+            showImageInsertDialog(id);
         }
 
         function initializeTypographyDropSlots() {
