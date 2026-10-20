@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>영상 제작 기획안 - Interactive Planner v4</title>
 <style>
     /* 1. 디자인 시스템 */
@@ -514,6 +515,73 @@
         .toolbar-actions { flex-wrap: wrap; border-left: 0; padding-left: 0; }
         .toolbar-account { grid-column: 1 / -1; justify-content: flex-end; }
     }
+    /* 학생용 작성 안내와 접근성 */
+    [hidden] { display: none !important; }
+    .writing-guide { margin: 0 0 24px; padding: 16px 18px; border: 1px solid #d7dce0; border-radius: 10px; background: #f7f8f9; }
+    .writing-guide p, .field-help { margin: 6px 0 12px; color: #59636c; font-size: .85rem; line-height: 1.65; }
+    .writing-guide p:last-child { margin-bottom: 0; }
+    .finish-guide label { display: block; margin: 12px 0 6px; font-weight: 700; }
+    .basic-table th { width: auto; }
+    textarea.short-field { min-height: 42px; }
+    .home-brand h1 { border: 0; padding: 0; text-align: left; }
+    .home-folder-icon { flex-shrink: 0; }
+    .home-brand p, .project-card-meta, .folder-toolbar span, .modal-card p, .reference-drop-hint { color: #59636c; }
+    input::placeholder, textarea::placeholder { color: #737d87 !important; }
+    input[type="password"] { width: 100%; padding: 8px; border: 1px solid #d7dce0; border-radius: 5px; background: #f8f9fa; font: inherit; box-sizing: border-box; }
+    :where(button, a, [tabindex]):focus-visible { outline: 3px solid #1864ab; outline-offset: 3px; }
+    .tag-input:focus-visible { outline: 2px solid #1864ab !important; }
+    button:disabled { cursor: wait; opacity: .65; }
+    .section-subtitle { flex-wrap: wrap; gap: 10px; }
+    .section-title-content { min-width: 0; }
+    .section-subtitle-actions, .resource-links { flex-wrap: wrap; margin-left: auto; }
+    .resource-links a { width: 30px; height: 30px; }
+    .help-tip { width: 24px; height: 24px; box-sizing: border-box; }
+    .help-tip::after { left: auto; right: 0; width: min(250px, 65vw); }
+    .modal-card { box-sizing: border-box; max-height: 90dvh; overflow-y: auto; }
+    .modal-close, .lightbox-close { min-width: 36px; min-height: 36px; }
+    .btn-remove { min-height: 28px; }
+    .box-item:focus-within .btn-remove, .typography-image-slot:focus-within .btn-remove, .yt-thumb-preview:focus-within .btn-remove { display: block; }
+    .reference-order { display: flex; justify-content: flex-end; gap: 6px; }
+    .reference-card:not(.is-filled) .reference-order { display: none; }
+    .reference-order button { border: 1px solid #d7dce0; background: white; color: #495057; border-radius: 6px; min-height: 30px; padding: 4px 10px; cursor: pointer; }
+    body.remote-app.editing { padding: 0 0 24px; }
+    body.remote-app.editing .toolbar { position: sticky; top: 0; }
+    body.remote-app.editing .a4-page { margin-top: 24px; }
+    .toolbar .btn-action { flex: 0 0 auto; }
+    @media screen and (max-width: 900px) {
+        body.remote-app.editing .toolbar { grid-template-columns: auto 1fr auto; gap: 8px; }
+        .toolbar-account { grid-column: 3; grid-row: 1; }
+        .toolbar-context { grid-column: 1 / -1; grid-row: 2; gap: 12px; justify-content: space-between; }
+        body.remote-app.editing .toolbar .save-status { white-space: normal; text-align: right; }
+        .toolbar-actions { flex-wrap: nowrap; }
+        body.remote-app.editing .a4-page { margin-top: 12px; }
+    }
+    @media screen and (max-width: 600px) {
+        .a4-page table, .a4-page tbody { display: block; }
+        .a4-page tr { display: grid; grid-template-columns: minmax(90px, 30%) minmax(0, 1fr); gap: 8px; margin-bottom: 8px; }
+        .a4-page th, .a4-page td { display: block; width: auto; min-width: 0; padding: 8px; }
+        .a4-page td[colspan] { grid-column: 2; }
+        .a4-page h1 { font-size: 1.25rem; }
+        .print-block { padding: 10px; }
+        .toolbar .btn-action { font-size: 12px !important; padding: 8px 10px !important; }
+        body.remote-app.editing .toolbar { padding: 8px; }
+        .toolbar-group { gap: 5px; }
+        .home-screen { padding: 24px 14px; }
+        .home-brand { align-items: flex-start; }
+        .home-folder-icon { width: 42px; height: 36px; margin-top: 12px; }
+        .project-grid { grid-template-columns: minmax(0, 1fr); }
+        .help-tip::after { position: fixed; left: 16px; right: 16px; bottom: 20px; width: auto; }
+    }
+    @media (hover: none) { .is-filled .btn-remove, .has-img .btn-remove, .has-data .btn-remove { display: block; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; } }
+    @media print {
+        .screen-only, .field-help, .help-tip, .reference-drop-hint, .reference-order { display: none !important; }
+        :focus, :focus-visible { outline: none !important; }
+        body.remote-app.editing { padding: 0 !important; background: white; }
+        body.remote-app.editing .a4-page { display: block; margin: 0; }
+        .print-section { display: block; }
+        input::placeholder, textarea::placeholder { color: transparent !important; }
+    }
 </style>
 </head>
 <body class="remote-app" data-is-exported="false" data-project-version="4">
@@ -525,7 +593,7 @@
                     <span class="home-folder-icon" aria-hidden="true"></span>
                     <div>
                         <h1>기획안</h1>
-                        <p>영상 제작 실습 기획안을 안전하게 보관하고 이어서 작업하세요.</p>
+                        <p>내 기획안을 만들고, 비밀번호로 열어 이어서 작성하세요.</p>
                     </div>
                 </div>
                 <div class="home-actions">
@@ -540,6 +608,7 @@
                 </div>
                 <div id="project_grid" class="project-grid"></div>
             </section>
+            <p class="field-help">기획안은 만든 날부터 100일 동안 보관됩니다. 필요한 완성본은 기간이 지나기 전에 PDF로 저장해 두세요.</p>
         </div>
     </main>
 
@@ -561,14 +630,20 @@
     </div>
 
     <div class="a4-page">
-        <h1>[영상 제작 실습 기획안] Production Plan</h1>
+        <h1>영상 편집 · 썸네일 기획안</h1>
         <div id="document_meta" class="document-meta" hidden></div>
+        <div class="writing-guide screen-only">
+            <strong>짧게 적고, 편집하면서 바꿔도 괜찮아요.</strong>
+            <p>주제 → 사용할 자료 → 편집 느낌 → 음악 → 썸네일 순서로 생각해 보세요. 필요 없는 칸은 비워두고, 정하지 못한 내용은 ‘미정’으로 적어도 됩니다.</p>
+            <p>입력 내용은 자동 저장됩니다. 나가기 전 상단의 ‘저장 완료’를 확인하세요.</p>
+        </div>
 
         <!-- 1. 기본 정보 -->
         <section class="print-section">
-        <h2>1. Basic Information (기본 정보)</h2>
+        <h2>1. 기본 정보</h2>
         <div class="print-block">
-        <table>
+        <table class="basic-table">
+            <colgroup><col style="width:18%"><col style="width:32%"><col style="width:18%"><col style="width:32%"></colgroup>
             <tr>
                 <th>제작자</th>
                 <td><input type="text" id="creator" placeholder="이름 입력" oninput="handlePlannerMetaInput()"></td>
@@ -581,7 +656,7 @@
             </tr>
             <tr>
                 <th>기획안 제목</th>
-                <td colspan="3"><input type="text" id="planner_title" placeholder="기획안 제목 입력" oninput="handlePlannerMetaInput()"></td>
+                <td colspan="3"><textarea id="planner_title" class="short-field" rows="1" placeholder="기획안 제목 입력" oninput="autoResizeTextarea(this, false); handlePlannerMetaInput()"></textarea></td>
             </tr>
             <tr>
                 <th>영상 카테고리</th>
@@ -605,13 +680,13 @@
                 </td>
             </tr>
             <tr>
-                <th>해상도 (Resolution)</th>
+                <th>화면 크기<br>(해상도)</th>
                 <td>
                     <div class="input-row" id="res_row">
                         <select id="res_select" onchange="handleDirectInput('res')">
-                            <option value="1920x1080">1920x1080</option>
+                            <option value="1920x1080">1920×1080 (가로)</option>
                             <option value="3840x2160">3840x2160</option>
-                            <option value="1080x1920">1080x1920</option>
+                            <option value="1080x1920">1080×1920 (세로)</option>
                             <option value="1080x1080">1080x1080</option>
                             <option value="custom">직접 입력</option>
                         </select>
@@ -621,7 +696,7 @@
                         </div>
                     </div>
                 </td>
-                <th>프레임레이트 (FPS)</th>
+                <th>초당 화면 수<br>(FPS)</th>
                 <td>
                     <div class="input-row" id="fps_row">
                         <select id="fps_select" onchange="handleDirectInput('fps')">
@@ -641,43 +716,53 @@
                 </td>
             </tr>
             <tr>
-                <th>예상 러닝타임 / 코덱</th>
+                <th>영상 길이</th>
                 <td><input type="text" id="runtime" placeholder="예: 5분 내외" oninput="autoSave()"></td>
-                <td colspan="2"><input type="text" id="codec" placeholder="출력 코덱 (예: H.264 / MP4)" oninput="autoSave()"></td>
+                <th>내보내기 형식</th>
+                <td><input type="text" id="codec" placeholder="예: H.264 / MP4" oninput="autoSave()"></td>
             </tr>
         </table>
+        <p class="field-help screen-only">화면 크기·FPS·내보내기 형식은 수업에서 안내받은 설정에 맞추세요. 아직 배우지 않았다면 나중에 정해도 됩니다.</p>
         </div>
         </section>
 
         <!-- 2. 기획 의도 -->
         <section class="print-section">
-        <h2>2. Concept & Target (의도 및 타겟)</h2>
+        <h2>2. 어떤 영상을 만들까요?</h2>
         <div class="print-block">
-        <div class="section-subtitle"><span class="section-title-content">🎯 기획 의도 / 시놉시스 <span class="help-tip" tabindex="0" role="img" aria-label="기획 의도 작성 가이드" data-tooltip="이 영상을 왜 만드는지, 무엇을 보여주고 싶은지, 시청자가 어떤 느낌이나 정보를 얻기를 바라는지 적어보세요.">?</span></span></div>
-        <textarea id="synopsis" class="guided-field" placeholder="예: 바쁜 일상 속에서 잠시 쉬어갈 수 있는 동네 산책 영상을 제작한다." oninput="handleTextareaInput(this)"></textarea>
+        <div class="section-subtitle"><span class="section-title-content">🎯 주제와 만들려는 이유 <span class="help-tip" tabindex="0" role="img" aria-label="주제 작성 도움말" data-tooltip="무엇을 보여줄지, 보는 사람이 어떤 정보나 느낌을 얻으면 좋을지 짧게 적어보세요.">?</span></span></div>
+        <textarea id="synopsis" class="guided-field" placeholder="예: 제공된 카페 영상으로 조용히 쉬기 좋은 공간을 소개한다. 따뜻하고 편안한 느낌을 전하고 싶다." oninput="handleTextareaInput(this)"></textarea>
         </div>
         <div class="print-block">
-        <div class="section-subtitle"><span class="section-title-content">👥 타겟 시청자 <span class="help-tip" tabindex="0" role="img" aria-label="타겟 시청자 작성 가이드" data-tooltip="이 영상을 가장 필요로 하거나 재미있게 볼 사람을 생각해보세요. 연령, 관심사, 생활 방식, 시청 상황 등을 구체적으로 적으면 좋습니다.">?</span></span></div>
-        <textarea id="target" class="guided-field target-field" placeholder="예: 조용한 산책 코스를 찾는 20~30대, 퇴근 후 힐링이 필요한 사람" oninput="handleTextareaInput(this)"></textarea>
+        <div class="section-subtitle"><span class="section-title-content">👥 누가 보면 좋을까요? <span class="help-tip" tabindex="0" role="img" aria-label="시청자 작성 도움말" data-tooltip="이 영상에 관심을 가질 사람을 적어보세요. 예: 공부할 카페를 찾는 학생, 간단한 요리를 배우고 싶은 사람.">?</span></span></div>
+        <textarea id="target" class="guided-field target-field" placeholder="예: 조용히 공부할 카페를 찾는 학생, 편안한 공간을 좋아하는 사람" oninput="handleTextareaInput(this)"></textarea>
+        </div>
+        <div class="print-block">
+            <div class="section-subtitle"><label for="story_flow">🧩 영상의 순서</label></div>
+            <p class="field-help">장면을 하나씩 자세히 쓰기보다, 시작 → 중간 → 끝의 흐름만 적어보세요.</p>
+            <textarea id="story_flow" placeholder="예: 시작 — 카페 이름과 공간 소개&#10;중간 — 음료와 내부 모습을 음악에 맞춰 편집&#10;끝 — 추천하는 이유를 자막으로 정리" oninput="handleTextareaInput(this)"></textarea>
         </div>
         </section>
 
         <!-- 3. 소스 및 촬영 -->
         <section class="print-section">
-        <h2>3. Source & Filming Plan (소스 및 촬영)</h2>
+        <h2>3. 사용할 영상과 이미지</h2>
+        <p class="field-help">수업 자료나 이미 가지고 있는 파일을 활용하세요. 새로 촬영할 필요는 없습니다.</p>
         <div class="section-options print-block print-block--compact">
-            <label><input type="checkbox" id="chk_source" onchange="toggleSection('sec_source', this)"> 외부 소스 사용</label>
-            <label><input type="checkbox" id="chk_filming" onchange="toggleSection('sec_filming', this)"> 직접 촬영 진행</label>
-            <label><input type="checkbox" id="chk_ai" onchange="toggleSection('sec_ai', this)"> 생성형 AI 활용</label>
+            <input type="checkbox" id="chk_source" hidden>
+            <input type="checkbox" id="chk_filming" hidden>
+            <label><input type="checkbox" id="chk_ai" onchange="toggleSection('sec_ai', this)"> AI로 만든 자료도 사용해요 (선택)</label>
         </div>
 
-        <div id="sec_source" class="hidden-section print-block">
-            <div class="section-subtitle"><span class="section-title-content">📂 사용 소스 명세 <span class="help-tip" tabindex="0" role="img" aria-label="외부 소스 작성 가이드" data-tooltip="외부 영상, 이미지, 음악, 자료화면 등 직접 만들지 않고 가져와 사용할 소스의 출처와 파일명을 적어보세요.">?</span></span></div>
-            <textarea id="source_list" placeholder="활용할 외부 영상 주소나 파일 이름을 적어주세요." oninput="handleTextareaInput(this)"></textarea>
+        <div id="sec_source" class="print-block">
+            <div class="section-subtitle"><label for="source_list">📂 사용할 자료와 출처</label></div>
+            <p class="field-help">어떤 자료를 어디에 쓸지 적으세요. 인터넷 자료는 주소와 사용 조건(출처 표시 등)도 확인해 두세요.</p>
+            <textarea id="source_list" placeholder="예: 수업 제공 cafe.mp4 — 공간 소개 장면&#10;직접 가진 coffee.jpg — 썸네일의 중심 이미지&#10;무료 음악 사이트 주소 — 배경음악, 출처 표시 여부 확인" oninput="handleTextareaInput(this)"></textarea>
         </div>
 
         <div id="sec_filming" class="hidden-section print-block">
-            <div class="section-subtitle"><span class="section-title-content">📹 직접 촬영 계획 <span class="help-tip" tabindex="0" role="img" aria-label="직접 촬영 계획 가이드" data-tooltip="어떤 장비로 언제 어디서 무엇을 촬영할지 적어보세요. 필요한 구도나 움직임까지 기록하면 촬영할 때 도움이 됩니다.">?</span></span></div>
+            <div class="section-subtitle">📹 이전에 작성한 촬영 메모</div>
+            <p class="field-help">기존 내용을 보관하는 영역입니다. 이번 편집 수업에서는 작성하지 않아도 됩니다.</p>
             <table>
                 <tr>
                     <th>촬영 장비</th>
@@ -710,8 +795,8 @@
                     <td><input type="text" id="ai_purpose" placeholder="예: 썸네일 이미지와 배경음악 아이디어 생성" oninput="autoSave()"></td>
                 </tr>
                 <tr>
-                    <th>생성 결과 / 프롬프트</th>
-                    <td><textarea id="ai_prompt" placeholder="어떤 결과물을 만들었는지, 핵심 프롬프트는 무엇이었는지 적어보세요." oninput="handleTextareaInput(this)"></textarea></td>
+                    <th>만든 자료 / 요청한 내용</th>
+                    <td><textarea id="ai_prompt" placeholder="예: 썸네일용 배경 이미지 — 따뜻한 카페 창가를 그려 달라고 요청" oninput="handleTextareaInput(this)"></textarea></td>
                 </tr>
                 <tr>
                     <th>사용 및 출처 메모</th>
@@ -724,11 +809,15 @@
 
         <!-- 4. 무드보드 및 톤앤매너 -->
         <section class="print-section">
-        <h2>4. Moodboard & Tone (무드보드 및 톤앤매너)</h2>
+        <h2>4. 편집 느낌과 참고 자료</h2>
+        <div class="print-block">
+            <div class="section-subtitle"><label for="editing_plan">✂️ 이렇게 편집하고 싶어요</label></div>
+            <textarea id="editing_plan" placeholder="예: 음악 박자에 맞춰 장면을 바꾸고, 장소 이름은 큰 자막으로 넣는다. 장면 전환은 부드럽게 하고 색은 따뜻하게 맞춘다." oninput="handleTextareaInput(this)"></textarea>
+        </div>
         
         <div class="print-block print-block--grid yt-reference-block">
         <div class="section-subtitle">
-            <span class="section-title-content">🎥 편집 스타일 레퍼런스 (유튜브 링크) <span class="help-tip" tabindex="0" role="img" aria-label="편집 스타일 레퍼런스 가이드" data-tooltip="내 영상의 편집 리듬, 화면 구성, 자막, 음악 사용 방식과 비슷한 참고 영상을 적어보세요.">?</span></span>
+            <span class="section-title-content">🎥 참고할 영상 (유튜브 링크) <span class="help-tip" tabindex="0" role="img" aria-label="참고 영상 도움말" data-tooltip="장면이 바뀌는 속도, 자막, 음악 등 내 영상에 참고하고 싶은 영상의 유튜브 주소를 넣으세요. 참고하는 것과 영상을 가져다 사용하는 것은 달라요.">?</span></span>
             <nav class="resource-links" aria-label="영상 레퍼런스 사이트">
                 <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" title="YouTube - 영상 레퍼런스"><img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" alt="YouTube"></a>
                 <a href="https://vimeo.com/" target="_blank" rel="noopener noreferrer" title="Vimeo - 영상 레퍼런스"><img src="https://www.google.com/s2/favicons?domain=vimeo.com&sz=64" alt="Vimeo"></a>
@@ -740,7 +829,7 @@
         </div>
 
         <div class="print-block">
-        <div class="section-subtitle"><span>✨ 분위기 키워드 (Mood Keywords)</span></div>
+        <div class="section-subtitle"><label for="keyword_input">✨ 영상의 분위기 (짧은 단어)</label></div>
         <div class="tag-container" id="tag_container" onclick="document.getElementById('keyword_input').focus()">
             <input type="text" class="tag-input" id="keyword_input" placeholder="#키워드 입력 후 Enter (예: 감성적인, 힐링)" onkeydown="handleTagInput(event)" oncompositionstart="handleTagCompositionStart()" oncompositionend="handleTagCompositionEnd()">
         </div>
@@ -749,7 +838,7 @@
 
         <div class="print-block">
         <div class="section-subtitle">
-            <span class="section-title-content">🎨 컬러 가이드 (Color Palette) <span class="help-tip" tabindex="0" role="img" aria-label="컬러 가이드 작성 가이드" data-tooltip="영상 전체에서 반복해서 사용할 대표 색상을 정해보세요. 배경, 자막, 포인트 요소의 색을 구분하면 톤앤매너가 선명해집니다.">?</span></span>
+            <span class="section-title-content">🎨 사용할 색 <span class="help-tip" tabindex="0" role="img" aria-label="색 선택 도움말" data-tooltip="자막과 썸네일에 쓸 색을 정해보세요. 색 코드는 포토샵의 색상 선택 창에서 복사할 수 있어요. 다섯 칸을 모두 채울 필요는 없습니다.">?</span></span>
             <div class="section-subtitle-actions">
                 <nav class="resource-links" aria-label="컬러 팔레트 참고 사이트">
                     <a href="https://coolors.co/" target="_blank" rel="noopener noreferrer" title="Coolors - 컬러 팔레트 생성기"><img src="https://www.google.com/s2/favicons?domain=coolors.co&sz=64" alt="Coolors"></a>
@@ -801,7 +890,7 @@
 
         <div class="print-block">
         <div class="section-subtitle">
-            <span>🔤 서체 가이드 (Typography)</span>
+            <span>🔤 사용할 글꼴</span>
             <nav class="resource-links" aria-label="서체 다운로드 사이트">
                 <a href="https://noonnu.cc/" target="_blank" rel="noopener noreferrer" title="눈누 - 한글 폰트"><img src="https://www.google.com/s2/favicons?domain=noonnu.cc&sz=64" alt="눈누"></a>
                 <a href="https://fonts.google.com/" target="_blank" rel="noopener noreferrer" title="Google Fonts - 영문 및 다국어 폰트"><img src="https://www.google.com/s2/favicons?domain=fonts.google.com&sz=64" alt="Google Fonts"></a>
@@ -810,17 +899,18 @@
                 <a href="https://fonts.adobe.com/" target="_blank" rel="noopener noreferrer" title="Adobe Fonts - 크리에이티브 폰트"><img src="https://www.google.com/s2/favicons?domain=fonts.adobe.com&sz=64" alt="Adobe Fonts"></a>
             </nav>
         </div>
+        <p class="field-help">필요한 글꼴만 적어도 됩니다. 같은 글꼴을 반복해서 써도 괜찮아요. 모양을 보여주고 싶다면 캡처 이미지를 넣어주세요.</p>
         <div class="typography-list" id="typography_list">
             <div class="typography-item">
                 <div class="typography-info">
-                    <div class="typography-label">메인 타이틀</div>
+                    <div class="typography-label">큰 제목</div>
                     <input type="text" id="f_main" placeholder="가장 큰 제목용 서체명" oninput="autoSave()">
                 </div>
                 <div class="typography-image-slot" id="typo_main" onclick="openTypographyFileSelector('typo_main')"><span>+ 서체 캡처 추가</span></div>
             </div>
             <div class="typography-item">
                 <div class="typography-info">
-                    <div class="typography-label">서브 타이틀</div>
+                    <div class="typography-label">작은 제목</div>
                     <input type="text" id="f_sub" placeholder="중간 제목 / 섹션용 서체명" oninput="autoSave()">
                 </div>
                 <div class="typography-image-slot" id="typo_sub" onclick="openTypographyFileSelector('typo_sub')"><span>+ 서체 캡처 추가</span></div>
@@ -834,7 +924,7 @@
             </div>
             <div class="typography-item">
                 <div class="typography-info">
-                    <div class="typography-label">포인트 서체</div>
+                    <div class="typography-label">강조 글자</div>
                     <input type="text" id="f_point" placeholder="강조 및 자막 효과용 서체명" oninput="autoSave()">
                 </div>
                 <div class="typography-image-slot" id="typo_point" onclick="openTypographyFileSelector('typo_point')"><span>+ 서체 캡처 추가</span></div>
@@ -844,7 +934,7 @@
 
         <div class="print-block print-block--grid">
         <div class="section-subtitle">
-            <span>🖼️ 레퍼런스 이미지 (Moodboard)</span>
+            <span>🖼️ 참고할 이미지</span>
             <nav class="resource-links moodboard-links" aria-label="이미지 레퍼런스 참고 사이트">
                 <a class="resource-link-special" href="https://chromewebstore.google.com/detail/screenshot-youtube/gjoijpfmdhbjkkgnmahganhoinjjpohk" target="_blank" rel="noopener noreferrer" title="Screenshot YouTube - 유튜브 화면 캡처 확장 프로그램"><img src="https://www.google.com/s2/favicons?domain=chromewebstore.google.com&sz=64" alt="Screenshot YouTube"></a>
                 <span class="resource-links-divider" aria-hidden="true"></span>
@@ -864,10 +954,10 @@
 
         <!-- 5. 오디오 전략 -->
         <section class="print-section">
-        <h2>5. Audio Strategy (오디오 전략)</h2>
+        <h2>5. 음악과 목소리</h2>
         <div class="print-block">
             <div class="section-subtitle">
-                <span class="section-title-content">🔊 오디오 전략 <span class="help-tip" tabindex="0" role="img" aria-label="오디오 전략 작성 가이드" data-tooltip="영상에 사용할 음악과 목소리의 역할, 분위기, 제작 방식을 구체적으로 적어보세요. 실제 편집 단계에서 사운드 방향을 결정하는 기준이 됩니다.">?</span></span>
+                <span class="section-title-content">🔊 어떤 소리를 넣을까요? <span class="help-tip" tabindex="0" role="img" aria-label="음악과 목소리 도움말" data-tooltip="음악의 분위기와 설명 목소리를 넣을지 적어보세요. 음악이나 목소리가 필요 없다면 ‘사용하지 않음’으로 적어도 됩니다.">?</span></span>
                 <nav class="resource-links" aria-label="오디오 참고 사이트">
                     <a href="https://www.youtube.com/audiolibrary" target="_blank" rel="noopener noreferrer" title="YouTube Audio Library - 유튜브 오디오 보관함"><img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" alt="YouTube Audio Library"></a>
                     <a href="https://www.youtube.com/channel/UCMC-8sRR27Q_BlE6wU1M3vQ" target="_blank" rel="noopener noreferrer" title="NCS - NoCopyrightSounds 공식 채널"><img src="https://yt3.googleusercontent.com/bv2KtzpKP-Lb-O04zEO62UO3gzQfFCVfacLx33MqT2IG5LBtC-gA6q7Lv6HH79Az7Fhr-fjghg=s900-c-k-c0x00ffffff-no-rj" alt="NCS"></a>
@@ -881,27 +971,27 @@
                     <td><input type="text" id="audio_music" placeholder="예: 잔잔한 어쿠스틱 기타, 따뜻하고 편안한 분위기" oninput="autoSave()"></td>
                 </tr>
                 <tr>
-                    <th>내레이션</th>
+                    <th>설명 목소리<br>(내레이션)</th>
                     <td>
-                        <select id="audio_narration" onchange="autoSave()">
+                        <select id="audio_narration" onchange="updateNarrationFields(); autoSave()">
                             <option value="없음">사용하지 않음</option>
                             <option value="직접 녹음">직접 녹음</option>
-                            <option value="TTS">TTS 활용</option>
+                            <option value="TTS">AI 음성 (TTS)</option>
                             <option value="미정">아직 정하지 않음</option>
                         </select>
                     </td>
                 </tr>
                 <tr>
-                    <th>목소리 연출</th>
+                    <th>목소리 느낌</th>
                     <td><input type="text" id="audio_voice" placeholder="예: 낮고 차분한 톤, 속도는 느리게, 가까이 말하는 느낌" oninput="autoSave()"></td>
                 </tr>
                 <tr>
-                    <th>TTS 서비스 / 설정</th>
+                    <th>AI 음성 도구 / 설정</th>
                     <td><input type="text" id="audio_tts" placeholder="예: ElevenLabs · 한국어 여성 음성 · 안정적인 속도" oninput="autoSave()"></td>
                 </tr>
                 <tr>
-                    <th>믹싱 메모</th>
-                    <td><textarea id="audio_mix" placeholder="예: 내레이션이 나올 때 음악 볼륨을 낮추고, 주변 소리는 작게 남긴다." oninput="handleTextareaInput(this)"></textarea></td>
+                    <th>효과음 / 소리 크기</th>
+                    <td><textarea id="audio_mix" placeholder="예: 제목이 나올 때 가벼운 효과음을 넣는다. 설명 목소리가 나올 때는 음악을 작게 줄인다." oninput="handleTextareaInput(this)"></textarea></td>
                 </tr>
             </table>
         </div>
@@ -909,20 +999,41 @@
 
         <!-- 6. 썸네일 레퍼런스 -->
         <section class="print-section">
-        <h2>6. Thumbnail & Title (유튜브 업로드 기획)</h2>
+        <h2>6. 썸네일과 영상 제목</h2>
+        <p class="field-help">포토샵에서 만들 썸네일을 생각해 보세요. 실제 유튜브 업로드는 하지 않아도 됩니다.</p>
         <div class="print-block">
-        <div class="section-subtitle"><span>📺 유튜브 영상 제목 (업로드용 제목)</span></div>
-        <input type="text" id="youtube_title" style="font-weight:bold; border:1px solid #1864ab; padding:10px;" placeholder="시청자가 클릭하고 싶게 만드는 매력적인 제목을 정해 보세요." oninput="autoSave()">
+        <div class="section-subtitle"><label for="youtube_title">📺 시청자에게 보여줄 영상 제목</label></div>
+        <textarea id="youtube_title" class="short-field" rows="1" placeholder="예: 공부하기 좋은 조용한 카페를 소개합니다" oninput="handleTextareaInput(this)"></textarea>
+        <p class="field-help">1번의 기획안 제목과 같아도 괜찮아요.</p>
+        </div>
+        <div class="print-block">
+            <div class="section-subtitle"><label for="thumbnail_text">🔤 썸네일에 넣을 짧은 문구</label></div>
+            <textarea id="thumbnail_text" class="short-field" rows="1" placeholder="예: 나만 알고 싶은 조용한 카페" oninput="handleTextareaInput(this)"></textarea>
+        </div>
+        <div class="print-block">
+            <div class="section-subtitle"><label for="thumbnail_plan">🖼️ 썸네일의 이미지와 글자 배치</label></div>
+            <textarea id="thumbnail_plan" placeholder="예: 오른쪽에 커피 사진을 크게 놓고, 왼쪽에는 짙은 글자로 문구를 넣는다. 배경은 밝게, 글자는 작은 화면에서도 읽히게 만든다." oninput="handleTextareaInput(this)"></textarea>
         </div>
         
         <div class="print-block print-block--grid">
-        <div class="section-subtitle"><span>🖼️ 썸네일 디자인 레퍼런스</span></div>
+        <div class="section-subtitle"><span>🖼️ 참고할 썸네일</span></div>
         <div class="grid-container" id="grid_thumb">
             <!-- 동적 이미지 슬롯 생성 -->
         </div>
         <div class="reference-drop-hint">이미지를 이 영역으로 끌어다 놓거나 빈 이미지 칸을 클릭해 추가하세요.</div>
         </div>
         </section>
+
+        <div class="writing-guide screen-only finish-guide">
+            <strong>작성 후 한 번 확인해 보세요.</strong>
+            <p>영상의 순서가 떠오르나요? 사용할 자료를 찾았나요? 썸네일의 문구와 이미지가 잘 어울리나요?</p>
+            <label for="project_completion">작성 상태</label>
+            <select id="project_completion" onchange="changeCompletionStatus(this.value)">
+                <option value="working">작업중 — 더 수정할 예정이에요</option>
+                <option value="complete">완성 — 제출할 준비가 됐어요</option>
+            </select>
+            <p>‘완성’으로 바꿔도 다시 수정할 수 있어요. 제출은 상단의 ‘PDF 저장’을 이용하세요.</p>
+        </div>
 
         <div style="margin-top: 50px; text-align: center; color: #adb5bd; font-size: 0.8rem;">
             Copyright © hwipping@naver.com. All rights reserved.
@@ -935,7 +1046,7 @@
             <div id="modal_content"></div>
         </div>
     </div>
-    <div id="lightbox" class="lightbox" hidden onclick="closeLightbox()">
+    <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="이미지 크게 보기" hidden onclick="closeLightbox()">
         <button class="lightbox-close" type="button" onclick="closeLightbox()" aria-label="이미지 닫기">×</button>
         <img id="lightbox_image" alt="확대 이미지" onclick="event.stopPropagation()">
     </div>
@@ -960,6 +1071,9 @@
             admin: false,
             loading: false,
             saving: false,
+            saveTask: null,
+            revision: 0,
+            savedRevision: 0,
             saveTimer: null,
             assetByKey: {}
         };
@@ -1117,6 +1231,7 @@
             if (src) {
                 const img = document.createElement('img');
                 img.src = src;
+                img.alt = prefix === 'tref' ? '참고할 썸네일' : '참고 이미지';
                 box.appendChild(img);
                 box.classList.add('has-img');
             } else {
@@ -1126,6 +1241,7 @@
                 box.classList.remove('has-img');
             }
             box.appendChild(buildActionButton('삭제', `removeImage(event, '${id}', '${prefix}')`, 'btn-remove'));
+            makeImageSlotAccessible(box, '참고 이미지', () => openFileSelector(id));
         }
 
         function renderYtPreview(id, prefix, thumbSrc = '') {
@@ -1172,6 +1288,7 @@
             titleInput.className = 'yt-title-input';
             titleInput.id = 'yt_title_' + id;
             titleInput.placeholder = '영상 제목 (자동/수동)';
+            titleInput.setAttribute('aria-label', '참고 영상 제목');
             titleInput.setAttribute('oninput', 'autoSave()');
             titleInput.value = data.title || '';
 
@@ -1180,6 +1297,7 @@
             urlInput.className = 'yt-url-input';
             urlInput.id = 'yt_url_' + id;
             urlInput.placeholder = '유튜브 URL 입력';
+            urlInput.setAttribute('aria-label', '참고 영상 유튜브 주소');
             urlInput.setAttribute('onchange', `fetchYtData(this, '${id}', '${prefix}')`);
             urlInput.value = data.url || '';
 
@@ -1212,6 +1330,7 @@
         }
 
         window.onload = async function() {
+            initializeStudentAccessibility();
             const isExported = document.body.getAttribute('data-is-exported') === 'true';
 
             try {
@@ -1349,20 +1468,26 @@
             const modal = document.getElementById('app_modal');
             const target = document.getElementById('modal_content');
             if (!modal || !target) return;
+            if (modal.hidden) modalReturnFocus = document.activeElement;
             target.innerHTML = content;
+            target.querySelectorAll('input[type="password"]').forEach(input => input.autocomplete = /next|modal_password/.test(input.id) ? 'new-password' : 'current-password');
+            target.querySelectorAll('[data-modal-message]').forEach(el => el.setAttribute('role', 'alert'));
             modal.hidden = false;
+            setDialogBackground(modal, true);
             target.querySelector('input, button')?.focus();
         }
 
         function closeModal() {
             const modal = document.getElementById('app_modal');
             if (modal) modal.hidden = true;
+            setDialogBackground(modal, false);
+            modalReturnFocus?.focus();
         }
 
         function showNewProjectModal() {
             showModal(`
                 <h2 id="modal_title">새 기획안 만들기</h2>
-                <p>학생 이름과 기획안 제목을 정하고, 다른 사람이 열 수 없도록 비밀번호를 설정하세요.</p>
+                <p>이름과 제목은 목록에 공개됩니다. 내용은 비밀번호로 보호되며 선생님도 확인할 수 있어요. 만든 날부터 100일 동안 보관됩니다.</p>
                 <form data-modal-mode="new" onsubmit="handleModalSubmit(event)">
                     <label for="modal_student_name">학생 이름</label>
                     <input id="modal_student_name" type="text" required placeholder="예: 홍길동">
@@ -1498,6 +1623,7 @@
         }
 
         function showEditorResponse(payload) {
+            remoteState.revision = remoteState.savedRevision = 0;
             remoteState.project = payload.project;
             remoteState.token = payload.sessionToken || remoteState.token;
             remoteState.assetByKey = Object.fromEntries((payload.assets || []).map((asset) => [asset.logical_key, asset]));
@@ -1505,6 +1631,8 @@
             closeModal();
             applyRemoteProject(payload);
             updateRemoteToolbar();
+            document.querySelector('.a4-page h1').focus();
+            window.scrollTo(0, 0);
         }
 
         function updateRemoteToolbar() {
@@ -1552,7 +1680,8 @@
             keywords.forEach((keyword) => addTag(keyword));
             ['cat', 'res', 'fps'].forEach((type) => syncDirectInputMode(type, false));
             toggleSection('sec_source', Boolean(document.getElementById('chk_source')?.checked), false);
-            toggleSection('sec_filming', Boolean(document.getElementById('chk_filming')?.checked), false);
+            const hasFilmingNotes = ['film_gear', 'film_date', 'film_loc', 'film_detail'].some(id => String(fields[id] || '').trim());
+            toggleSection('sec_filming', hasFilmingNotes, false);
             toggleSection('sec_ai', Boolean(document.getElementById('chk_ai')?.checked), false);
 
             const grids = payload.project?.content?.grids || {};
@@ -1590,6 +1719,9 @@
             });
             initializeTypographyDropSlots();
             initializeTextareas();
+            document.getElementById('project_completion').value = payload.project.status || 'working';
+            updateNarrationFields();
+            ['hex1', 'hex2', 'hex3', 'hex4', 'hex5'].forEach((id, index) => updateColor(document.getElementById(id), 'cbox' + (index + 1), false));
             remoteState.loading = false;
             updateDocumentMeta();
             setSaveStatus(`${remoteState.admin ? '관리자 모드' : '편집 모드'} · 불러오기 완료`);
@@ -1659,8 +1791,14 @@
                 setSaveStatus('먼저 기획안을 열거나 새로 만들어 주세요.');
                 return false;
             }
-            if (remoteState.saving) return false;
+            if (remoteState.saving) {
+                await remoteState.saveTask;
+                return saveRemoteProject(showMessage);
+            }
             remoteState.saving = true;
+            const revision = remoteState.revision;
+            if (showMessage) setSaveStatus('저장 중…');
+            remoteState.saveTask = (async () => {
             try {
                 let content = collectRemoteContent();
                 await uploadRemoteAssets(content);
@@ -1680,7 +1818,9 @@
                 remoteState.project.title = plannerTitle;
                 if (firstAsset?.storage_path) remoteState.project.cover_asset_path = firstAsset.storage_path;
                 updateRemoteToolbar();
-                if (showMessage) setSaveStatus(`Supabase에 저장 완료 · ${formatSavedAt()}`);
+                if (!result.saved) throw new Error('저장이 완료되지 않았습니다. 다시 저장해 주세요.');
+                remoteState.savedRevision = revision;
+                if (showMessage) setSaveStatus(remoteState.revision === revision ? `저장 완료 · ${formatSavedAt()}` : '추가 변경 내용을 저장 중…');
                 return Boolean(result.saved);
             } catch (error) {
                 setSaveStatus(`저장 실패 · ${error.message}`);
@@ -1688,9 +1828,14 @@
             } finally {
                 remoteState.saving = false;
             }
+            })();
+            const saved = await remoteState.saveTask;
+            if (saved && remoteState.revision > remoteState.savedRevision) return saveRemoteProject(showMessage);
+            return saved;
         }
 
         function scheduleRemoteSave() {
+            remoteState.revision += 1;
             clearTimeout(remoteState.saveTimer);
             remoteState.saveTimer = setTimeout(() => saveRemoteProject(), 900);
             setSaveStatus('변경 내용을 저장할 준비 중입니다.');
@@ -1698,12 +1843,16 @@
 
         async function showHome() {
             clearTimeout(remoteState.saveTimer);
-            if (remoteState.project && remoteState.token) await saveRemoteProject(false);
+            if (remoteState.project && remoteState.token && !(await saveRemoteProject(false))) {
+                setSaveStatus('저장하지 못해 편집 화면을 유지합니다. 연결을 확인하고 다시 저장해 주세요.');
+                return;
+            }
             document.body.classList.remove('editing');
             remoteState.project = null;
             remoteState.assetByKey = {};
             if (!remoteState.admin) remoteState.token = '';
             await loadHome();
+            document.querySelector('.home-brand h1').focus();
             setSaveStatus(remoteState.admin ? '관리자 모드로 기획안 목록을 확인하고 있습니다.' : '기획안을 선택하거나 새로 만들어 주세요.');
         }
 
@@ -1713,12 +1862,17 @@
             const image = document.getElementById('lightbox_image');
             if (!lightbox || !image) return;
             image.src = src;
+            lightboxReturnFocus = document.activeElement;
             lightbox.hidden = false;
+            setDialogBackground(lightbox, true);
+            lightbox.querySelector('button').focus();
         }
 
         function closeLightbox() {
             const lightbox = document.getElementById('lightbox');
             if (lightbox) lightbox.hidden = true;
+            setDialogBackground(lightbox, false);
+            lightboxReturnFocus?.focus();
         }
 
         function initializeRemoteImageZoom() {
@@ -1729,6 +1883,88 @@
                 if (!image) return;
                 event.stopPropagation();
                 openImageLightbox(image.src);
+            }, true);
+        }
+
+        let modalReturnFocus = null;
+        let lightboxReturnFocus = null;
+
+        function setDialogBackground(dialog, inert) {
+            if (!dialog) return;
+            Array.from(document.body.children).forEach(element => {
+                if (element !== dialog && !['SCRIPT', 'STYLE'].includes(element.tagName)) element.inert = inert;
+            });
+        }
+
+        function updateNarrationFields() {
+            const mode = document.getElementById('audio_narration').value;
+            ['audio_voice', 'audio_tts'].forEach(id => {
+                const input = document.getElementById(id);
+                const relevant = id === 'audio_voice' ? mode !== '없음' : mode === 'TTS';
+                input.closest('tr').hidden = !relevant && !input.value.trim();
+            });
+        }
+
+        function changeCompletionStatus(value) {
+            if (!remoteState.project) return;
+            remoteState.project.status = value === 'complete' ? 'complete' : 'working';
+            updateRemoteToolbar();
+            autoSave();
+        }
+
+        function makeImageSlotAccessible(box, label, upload) {
+            box.tabIndex = 0;
+            box.setAttribute('role', 'group');
+            box.setAttribute('aria-label', `${label} — Enter로 ${box.querySelector('img') ? '확대' : '이미지 추가'}`);
+            box.onkeydown = event => {
+                if (event.target !== box || !['Enter', ' '].includes(event.key)) return;
+                event.preventDefault();
+                const image = box.querySelector('img');
+                if (image) openImageLightbox(image.src);
+                else upload();
+            };
+        }
+
+        function initializeStudentAccessibility() {
+            document.querySelectorAll('h1').forEach(el => el.tabIndex = -1);
+            document.querySelectorAll('.a4-page input, .a4-page textarea, .a4-page select').forEach(input => {
+                if (!input.id || input.hasAttribute('aria-label') || input.closest('label') || document.querySelector(`label[for="${input.id}"]`)) return;
+                const cell = input.closest('td');
+                const label = cell?.previousElementSibling?.textContent || input.closest('.typography-item')?.querySelector('.typography-label')?.textContent || input.closest('.print-block')?.querySelector('.section-subtitle')?.textContent || input.placeholder;
+                input.setAttribute('aria-label', (label || '입력').replace(/\s+/g, ' ').trim());
+            });
+            ['대표 색', '보조 색', '강조 색 1', '강조 색 2', '강조 색 3'].forEach((label, index) => {
+                const input = document.getElementById('hex' + (index + 1));
+                input.placeholder = label;
+                input.setAttribute('aria-label', label + ' 색 코드');
+            });
+            document.querySelectorAll('.help-tip').forEach(tip => {
+                tip.setAttribute('role', 'button');
+                tip.setAttribute('aria-label', `${tip.getAttribute('aria-label')}: ${tip.dataset.tooltip}`);
+                tip.onclick = () => tip.classList.toggle('is-open');
+                tip.onkeydown = event => {
+                    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); tip.click(); }
+                    if (event.key === 'Escape') tip.classList.remove('is-open');
+                };
+            });
+            document.querySelectorAll('.btn-cancel').forEach(control => {
+                control.tabIndex = 0;
+                control.setAttribute('role', 'button');
+                control.setAttribute('aria-label', control.title);
+                control.onkeydown = event => { if (['Enter', ' '].includes(event.key)) { event.preventDefault(); control.click(); } };
+            });
+            document.addEventListener('keydown', event => {
+                const dialog = !document.getElementById('lightbox').hidden ? document.getElementById('lightbox') : !document.getElementById('app_modal').hidden ? document.getElementById('app_modal') : null;
+                if (!dialog) return;
+                if (event.key === 'Escape') { event.preventDefault(); dialog.id === 'lightbox' ? closeLightbox() : closeModal(); }
+                if (event.key !== 'Tab') return;
+                const items = [...dialog.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')].filter(el => !el.disabled && el.getClientRects().length);
+                const first = items[0], last = items[items.length - 1];
+                if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+            });
+            window.addEventListener('beforeunload', event => {
+                if (remoteState.project && (remoteState.saving || remoteState.revision > remoteState.savedRevision)) { event.preventDefault(); event.returnValue = ''; }
             });
         }
 
@@ -1750,7 +1986,7 @@
 
         function autoSave() {
             const data = {};
-            document.querySelectorAll('input, textarea, select').forEach((el) => {
+            document.querySelectorAll('.a4-page input, .a4-page textarea, .a4-page select').forEach((el) => {
                 if (!el.id || el.type === 'file') return;
                 data[el.id] = el.type === 'checkbox' ? el.checked : el.value;
             });
@@ -2000,12 +2236,34 @@
 
             const memoInput = document.createElement('textarea');
             memoInput.className = 'reference-memo';
+            memoInput.setAttribute('aria-label', prefix === 'tref' ? '참고할 썸네일 메모' : '참고 이미지 메모');
             memoInput.placeholder = '이 이미지를 넣은 이유와 참고하고 싶은 부분을 적어보세요.';
             memoInput.value = memo;
             card.appendChild(memoInput);
             card.classList.toggle('is-filled', Boolean(src));
             container.appendChild(card);
             wireReferenceCard(card, prefix);
+            {
+                const controls = document.createElement('div');
+                controls.className = 'reference-order';
+                [-1, 1].forEach(direction => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.textContent = direction < 0 ? '앞으로' : '뒤로';
+                    button.setAttribute('aria-label', `이미지와 메모를 ${button.textContent} 이동`);
+                    button.onclick = () => {
+                        const sibling = direction < 0 ? card.previousElementSibling : card.nextElementSibling;
+                        if (!sibling?.classList.contains('is-filled')) return;
+                        if (direction < 0) container.insertBefore(card, sibling);
+                        else container.insertBefore(sibling, card);
+                        button.focus();
+                        saveGridData(prefix);
+                        autoSave();
+                    };
+                    controls.appendChild(button);
+                });
+                card.appendChild(controls);
+            }
             return card;
         }
 
@@ -2174,6 +2432,7 @@
                 box.appendChild(label);
             }
             box.appendChild(buildActionButton('삭제', `removeTypographyImage(event, '${id}')`, 'btn-remove'));
+            makeImageSlotAccessible(box, '글꼴 캡처', () => openTypographyFileSelector(id));
         }
 
         async function saveTypographyImages() {
@@ -2366,7 +2625,7 @@
         function resetEmbeddedForm() {
             document.querySelectorAll('input, textarea, select').forEach((el) => {
                 if (el.type === 'checkbox') el.checked = false;
-                else if (el.tagName === 'SELECT') el.selectedIndex = 0;
+                else if (el.tagName === 'SELECT') el.value = Array.from(el.options).find(option => option.defaultSelected)?.value || el.options[0]?.value || '';
                 else if (el.type !== 'file') el.value = '';
             });
             const dateInput = document.getElementById('date_value');
