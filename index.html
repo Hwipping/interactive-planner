@@ -1064,6 +1064,8 @@
         const SUPABASE_URL = 'https://anvbfwyzuziprokdiosd.supabase.co';
         const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_KoAKMum9hjxxIEj-4HXZew_-RR8UCxO';
         const SUPABASE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/planner-api`;
+        const OWNER_SESSIONS_STORAGE_KEY = 'planner_owner_sessions_v1';
+        const ownerSessionMemory = new Map();
         const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
         const remoteState = {
             project: null,
@@ -1392,8 +1394,58 @@
                 body: JSON.stringify({ action, ...payload })
             });
             const body = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(body.error || '서버 요청을 처리하지 못했습니다.');
+            if (!response.ok) {
+                const error = new Error(body.error || '서버 요청을 처리하지 못했습니다.');
+                error.status = response.status;
+                throw error;
+            }
             return body;
+        }
+
+        function readOwnerSessions() {
+            try {
+                const parsed = JSON.parse(sessionStorage.getItem(OWNER_SESSIONS_STORAGE_KEY) || '{}');
+                return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+            } catch {
+                return Object.fromEntries(ownerSessionMemory);
+            }
+        }
+
+        function getOwnerSession(projectId) {
+            const key = String(projectId || '');
+            if (!key) return '';
+            if (ownerSessionMemory.has(key)) return ownerSessionMemory.get(key);
+            const token = readOwnerSessions()[key];
+            if (typeof token === 'string' && token) {
+                ownerSessionMemory.set(key, token);
+                return token;
+            }
+            return '';
+        }
+
+        function rememberOwnerSession(projectId, token) {
+            const key = String(projectId || '');
+            if (!key || !token) return;
+            ownerSessionMemory.set(key, token);
+            const sessions = readOwnerSessions();
+            sessions[key] = token;
+            try {
+                sessionStorage.setItem(OWNER_SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
+            } catch {
+                // Keep the session available in memory for this tab if browser storage is unavailable.
+            }
+        }
+
+        function forgetOwnerSession(projectId) {
+            const key = String(projectId || '');
+            ownerSessionMemory.delete(key);
+            const sessions = readOwnerSessions();
+            delete sessions[key];
+            try {
+                sessionStorage.setItem(OWNER_SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
+            } catch {
+                // Nothing else to clear when session storage is unavailable.
+            }
         }
 
         function escapeHtml(value) {
@@ -1608,7 +1660,6 @@
         }
 
         async function openExistingProject(projectId) {
-            const card = Array.from(document.querySelectorAll('.project-card')).find((item) => item.querySelector('[aria-label]')?.getAttribute('aria-label')?.includes(projectId));
             if (remoteState.admin && remoteState.token) {
                 try {
                     const result = await remoteApi('admin-open', { projectId }, remoteState.token);
@@ -1617,6 +1668,22 @@
                     setSaveStatus(error.message);
                 }
                 return;
+            }
+            const cachedToken = getOwnerSession(projectId);
+            if (cachedToken) {
+                try {
+                    const result = await remoteApi('resume', { projectId }, cachedToken);
+                    remoteState.admin = false;
+                    showEditorResponse(result);
+                    return;
+                } catch (error) {
+                    if (error.status === 401 || error.status === 404) {
+                        forgetOwnerSession(projectId);
+                    } else {
+                        setSaveStatus(`저장된 접근 권한을 확인하지 못했습니다. ${error.message}`);
+                        return;
+                    }
+                }
             }
             const projects = await remoteApi('list', {}, '');
             const project = (projects.projects || []).find((item) => item.id === projectId);
@@ -1627,6 +1694,9 @@
             remoteState.revision = remoteState.savedRevision = 0;
             remoteState.project = payload.project;
             remoteState.token = payload.sessionToken || remoteState.token;
+            if (!remoteState.admin && payload.project?.id && payload.sessionToken) {
+                rememberOwnerSession(payload.project.id, payload.sessionToken);
+            }
             remoteState.assetByKey = Object.fromEntries((payload.assets || []).map((asset) => [asset.logical_key, asset]));
             document.body.classList.add('editing');
             closeModal();

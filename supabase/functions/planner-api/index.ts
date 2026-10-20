@@ -10,7 +10,8 @@ const corsHeaders = {
 };
 
 const PROJECT_BUCKET = 'planner-assets';
-const SESSION_HOURS = 12;
+const OWNER_SESSION_DAYS = 100;
+const ADMIN_SESSION_HOURS = 12;
 const PASSWORD_ITERATIONS = 150_000;
 
 const supabase = createClient(
@@ -85,11 +86,14 @@ function getBearer(request: Request) {
 async function createSession(projectId: string | null, role: 'owner' | 'admin') {
   const token = randomToken();
   const tokenHash = await sha256(token);
+  const sessionLifetimeMs = role === 'owner'
+    ? OWNER_SESSION_DAYS * 24 * 60 * 60 * 1000
+    : ADMIN_SESSION_HOURS * 60 * 60 * 1000;
   const { error } = await supabase.from('planner_sessions').insert({
     token_hash: tokenHash,
     project_id: projectId,
     role,
-    expires_at: new Date(Date.now() + SESSION_HOURS * 60 * 60 * 1000).toISOString()
+    expires_at: new Date(Date.now() + sessionLifetimeMs).toISOString()
   });
   if (error) throw error;
   return token;
@@ -210,6 +214,20 @@ async function handle(request: Request) {
     if (!adminPassword || String(input.password ?? '') !== adminPassword) return fail('관리자 비밀번호가 올바르지 않습니다.', 401);
     const sessionToken = await createSession(null, 'admin');
     return response({ sessionToken, projects: await listProjects() });
+  }
+
+  if (action === 'resume') {
+    const projectId = String(input.projectId ?? '');
+    const session = await getSession(request, projectId);
+    if (!session || session.role !== 'owner') return fail('저장된 접근 권한이 만료되었거나 없습니다.', 401);
+    const { data: project, error } = await supabase
+      .from('planner_projects')
+      .select('id, student_name, title, status, content, created_at, updated_at, expires_at')
+      .eq('id', projectId)
+      .maybeSingle();
+    if (error || !project) return fail('기획안을 찾을 수 없습니다.', 404);
+    const payload = await withSignedAssets(project.id, project.content ?? {});
+    return response({ project, ...payload, sessionToken: getBearer(request) });
   }
 
   if (action === 'open') {
