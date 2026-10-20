@@ -460,7 +460,7 @@
     .toolbar-group { display: flex; align-items: center; gap: 8px; }
     .toolbar-actions { padding-left: 10px; border-left: 1px solid rgba(255,255,255,.14); }
     .toolbar-context { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
-    .toolbar-account { display: flex; align-items: center; justify-content: flex-end; }
+    .toolbar-account { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
     .remote-status-label { display: inline-flex; align-items: center; gap: 7px; color: #e9ecef; font-size: 13px; font-weight: 700; white-space: nowrap; }
     .remote-status-dot { width: 10px; height: 10px; flex: 0 0 auto; border-radius: 50%; background: #f08c46; box-shadow: 0 0 0 3px rgba(240, 140, 70, .15); }
     .remote-status-dot.complete { background: #37b679; box-shadow: 0 0 0 3px rgba(55, 182, 121, .15); }
@@ -475,6 +475,8 @@
         box-shadow: none;
     }
     body.remote-app.editing .toolbar .btn-action:hover { background: #5c636a; transform: none; }
+    body.remote-app.editing .toolbar .btn-lock[aria-pressed="true"] { background: #343a40; border-color: #adb5bd; }
+    body.remote-app.editing.editor-locked .a4-page { cursor: not-allowed; }
     body.remote-app.editing .toolbar .toolbar-icon {
         width: 42px;
         padding: 0;
@@ -557,6 +559,8 @@
         body.remote-app.editing .a4-page { margin-top: 12px; }
     }
     @media screen and (max-width: 600px) {
+        body.remote-app.editing .toolbar-account { grid-column: 1 / -1; grid-row: 2; }
+        body.remote-app.editing .toolbar-context { grid-row: 3; }
         .a4-page table, .a4-page tbody { display: block; }
         .a4-page tr { display: grid; grid-template-columns: minmax(90px, 30%) minmax(0, 1fr); gap: 8px; margin-bottom: 8px; }
         .a4-page th, .a4-page td { display: block; width: auto; min-width: 0; padding: 8px; }
@@ -626,6 +630,7 @@
         </div>
         <div class="toolbar-account">
             <button class="btn-action btn-password" onclick="showChangePassword()">비밀번호 변경</button>
+            <button class="btn-action btn-lock" id="editor_lock_toggle" type="button" onclick="toggleEditorLock()" aria-pressed="false" title="편집 잠금">🔒 잠금</button>
         </div>
     </div>
 
@@ -1065,6 +1070,7 @@
         const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_KoAKMum9hjxxIEj-4HXZew_-RR8UCxO';
         const SUPABASE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/planner-api`;
         const OWNER_SESSIONS_STORAGE_KEY = 'planner_owner_sessions_v1';
+        const EDITOR_LOCKS_STORAGE_KEY = 'planner_editor_locks_v1';
         const ownerSessionMemory = new Map();
         const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
         const remoteState = {
@@ -1077,6 +1083,7 @@
             revision: 0,
             savedRevision: 0,
             saveTimer: null,
+            locked: false,
             assetByKey: {}
         };
 
@@ -1693,6 +1700,7 @@
         function showEditorResponse(payload) {
             remoteState.revision = remoteState.savedRevision = 0;
             remoteState.project = payload.project;
+            remoteState.locked = isEditorLocked(payload.project?.id);
             remoteState.token = payload.sessionToken || remoteState.token;
             if (!remoteState.admin && payload.project?.id && payload.sessionToken) {
                 rememberOwnerSession(payload.project.id, payload.sessionToken);
@@ -1702,8 +1710,50 @@
             closeModal();
             applyRemoteProject(payload);
             updateRemoteToolbar();
-            document.querySelector('.a4-page h1').focus();
+            applyEditorLock();
+            (remoteState.locked ? document.getElementById('editor_lock_toggle') : document.querySelector('.a4-page h1'))?.focus();
             window.scrollTo(0, 0);
+        }
+
+        function isEditorLocked(projectId) {
+            if (!projectId) return false;
+            try {
+                const locks = JSON.parse(sessionStorage.getItem(EDITOR_LOCKS_STORAGE_KEY) || '{}');
+                return Boolean(locks && typeof locks === 'object' && locks[projectId]);
+            } catch {
+                return false;
+            }
+        }
+
+        function saveEditorLock(projectId, locked) {
+            if (!projectId) return;
+            try {
+                const stored = JSON.parse(sessionStorage.getItem(EDITOR_LOCKS_STORAGE_KEY) || '{}');
+                const locks = stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {};
+                if (locked) locks[projectId] = true;
+                else delete locks[projectId];
+                sessionStorage.setItem(EDITOR_LOCKS_STORAGE_KEY, JSON.stringify(locks));
+            } catch (error) {
+                console.warn('편집 잠금 상태를 이 브라우저 탭에 저장하지 못했습니다.', error);
+            }
+        }
+
+        function applyEditorLock() {
+            const editor = document.querySelector('.a4-page');
+            const toggle = document.getElementById('editor_lock_toggle');
+            if (!editor || !toggle) return;
+            editor.inert = Boolean(remoteState.locked);
+            document.body.classList.toggle('editor-locked', Boolean(remoteState.locked));
+            toggle.setAttribute('aria-pressed', String(Boolean(remoteState.locked)));
+            toggle.textContent = remoteState.locked ? '🔓 잠금 해제' : '🔒 잠금';
+            toggle.title = remoteState.locked ? '편집 잠금을 해제합니다.' : '기획안 편집을 잠급니다.';
+        }
+
+        function toggleEditorLock() {
+            if (!remoteState.project?.id) return;
+            remoteState.locked = !remoteState.locked;
+            saveEditorLock(remoteState.project.id, remoteState.locked);
+            applyEditorLock();
         }
 
         function updateRemoteToolbar() {
