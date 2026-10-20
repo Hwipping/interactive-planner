@@ -728,17 +728,17 @@
 
         <!-- 2. 기획 의도 -->
         <section class="print-section">
-        <h2>2. 어떤 영상을 만들까요?</h2>
+        <h2>2. 콘셉트 / 어떤 영상을 만들까요?</h2>
         <div class="print-block">
-        <div class="section-subtitle"><span class="section-title-content">🎯 주제와 만들려는 이유 <span class="help-tip" tabindex="0" role="img" aria-label="주제 작성 도움말" data-tooltip="무엇을 보여줄지, 보는 사람이 어떤 정보나 느낌을 얻으면 좋을지 짧게 적어보세요.">?</span></span></div>
+        <div class="section-subtitle"><span class="section-title-content">🎯 기획 의도 / 주제와 만들려는 이유 <span class="help-tip" tabindex="0" role="img" aria-label="주제 작성 도움말" data-tooltip="무엇을 보여줄지, 보는 사람이 어떤 정보나 느낌을 얻으면 좋을지 짧게 적어보세요.">?</span></span></div>
         <textarea id="synopsis" class="guided-field" placeholder="예: 제공된 카페 영상으로 조용히 쉬기 좋은 공간을 소개한다. 따뜻하고 편안한 느낌을 전하고 싶다." oninput="handleTextareaInput(this)"></textarea>
         </div>
         <div class="print-block">
-        <div class="section-subtitle"><span class="section-title-content">👥 누가 보면 좋을까요? <span class="help-tip" tabindex="0" role="img" aria-label="시청자 작성 도움말" data-tooltip="이 영상에 관심을 가질 사람을 적어보세요. 예: 공부할 카페를 찾는 학생, 간단한 요리를 배우고 싶은 사람.">?</span></span></div>
+        <div class="section-subtitle"><span class="section-title-content">👥 타겟 시청자 / 누가 보면 좋을까요? <span class="help-tip" tabindex="0" role="img" aria-label="시청자 작성 도움말" data-tooltip="이 영상에 관심을 가질 사람을 적어보세요. 예: 공부할 카페를 찾는 학생, 간단한 요리를 배우고 싶은 사람.">?</span></span></div>
         <textarea id="target" class="guided-field target-field" placeholder="예: 조용히 공부할 카페를 찾는 학생, 편안한 공간을 좋아하는 사람" oninput="handleTextareaInput(this)"></textarea>
         </div>
         <div class="print-block">
-            <div class="section-subtitle"><label for="story_flow">🧩 영상의 순서</label></div>
+            <div class="section-subtitle"><label for="story_flow">🧩 구성안 / 영상의 순서</label></div>
             <p class="field-help">장면을 하나씩 자세히 쓰기보다, 시작 → 중간 → 끝의 흐름만 적어보세요.</p>
             <textarea id="story_flow" placeholder="예: 시작 — 카페 이름과 공간 소개&#10;중간 — 음료와 내부 모습을 음악에 맞춰 편집&#10;끝 — 추천하는 이유를 자막으로 정리" oninput="handleTextareaInput(this)"></textarea>
         </div>
@@ -746,18 +746,40 @@
 
         <!-- 3. 소스 및 촬영 -->
         <section class="print-section">
-        <h2>3. 사용할 영상과 이미지</h2>
+        <h2>3. 소스 계획 / 사용할 영상과 이미지</h2>
         <p class="field-help">수업 자료나 이미 가지고 있는 파일을 활용하세요. 새로 촬영할 필요는 없습니다.</p>
+        <div id="sec_source" class="print-block">
+            <div class="section-subtitle"><label for="source_list">📂 소스 목록 / 사용할 자료와 출처</label></div>
+            <p class="field-help">어떤 자료를 어디에 쓸지 적으세요. 인터넷 자료는 주소와 사용 조건(출처 표시 등)도 확인해 두세요.</p>
+            <textarea id="source_list" placeholder="예: 수업 제공 cafe.mp4 — 공간 소개 장면&#10;직접 가진 coffee.jpg — 썸네일의 중심 이미지&#10;무료 음악 사이트 주소 — 배경음악, 출처 표시 여부 확인" oninput="handleTextareaInput(this)"></textarea>
+        </div>
+
         <div class="section-options print-block print-block--compact">
             <input type="checkbox" id="chk_source" hidden>
             <input type="checkbox" id="chk_filming" hidden>
-            <label><input type="checkbox" id="chk_ai" onchange="toggleSection('sec_ai', this)"> AI로 만든 자료도 사용해요 (선택)</label>
+            <label><input type="checkbox" id="chk_ai" onchange="toggleSection('sec_ai', this)"> 생성형 AI 활용 / AI로 만든 자료 사용 (선택)</label>
         </div>
 
-        <div id="sec_source" class="print-block">
-            <div class="section-subtitle"><label for="source_list">📂 사용할 자료와 출처</label></div>
-            <p class="field-help">어떤 자료를 어디에 쓸지 적으세요. 인터넷 자료는 주소와 사용 조건(출처 표시 등)도 확인해 두세요.</p>
-            <textarea id="source_list" placeholder="예: 수업 제공 cafe.mp4 — 공간 소개 장면&#10;직접 가진 coffee.jpg — 썸네일의 중심 이미지&#10;무료 음악 사이트 주소 — 배경음악, 출처 표시 여부 확인" oninput="handleTextareaInput(this)"></textarea>
+        <div id="sec_ai" class="hidden-section print-block">
+            <div class="section-subtitle"><span class="section-title-content">✨ 생성형 AI 활용 계획 <span class="help-tip" tabindex="0" role="img" aria-label="생성형 AI 활용 가이드" data-tooltip="이미지, 영상, 음성, 음악, 아이디어 등 생성형 AI를 어디에 활용할지와 사용한 도구·프롬프트·출처를 기록해보세요.">?</span></span></div>
+            <table>
+                <tr>
+                    <th>사용 도구</th>
+                    <td><input type="text" id="ai_tool" placeholder="예: ChatGPT, Midjourney, Sora, ElevenLabs" oninput="autoSave()"></td>
+                </tr>
+                <tr>
+                    <th>활용 목적</th>
+                    <td><input type="text" id="ai_purpose" placeholder="예: 썸네일 이미지와 배경음악 아이디어 생성" oninput="autoSave()"></td>
+                </tr>
+                <tr>
+                    <th>만든 자료 / 요청한 내용</th>
+                    <td><textarea id="ai_prompt" placeholder="예: 썸네일용 배경 이미지 — 따뜻한 카페 창가를 그려 달라고 요청" oninput="handleTextareaInput(this)"></textarea></td>
+                </tr>
+                <tr>
+                    <th>사용 및 출처 메모</th>
+                    <td><textarea id="ai_rights" placeholder="수정한 내용, 출처 표기 필요 여부, 수업 제출 시 참고할 사항을 적어보세요." oninput="handleTextareaInput(this)"></textarea></td>
+                </tr>
+            </table>
         </div>
 
         <div id="sec_filming" class="hidden-section print-block">
@@ -783,41 +805,19 @@
             </table>
         </div>
 
-        <div id="sec_ai" class="hidden-section print-block">
-            <div class="section-subtitle"><span class="section-title-content">✨ 생성형 AI 활용 계획 <span class="help-tip" tabindex="0" role="img" aria-label="생성형 AI 활용 가이드" data-tooltip="이미지, 영상, 음성, 음악, 아이디어 등 생성형 AI를 어디에 활용할지와 사용한 도구·프롬프트·출처를 기록해보세요.">?</span></span></div>
-            <table>
-                <tr>
-                    <th>사용 도구</th>
-                    <td><input type="text" id="ai_tool" placeholder="예: ChatGPT, Midjourney, Sora, ElevenLabs" oninput="autoSave()"></td>
-                </tr>
-                <tr>
-                    <th>활용 목적</th>
-                    <td><input type="text" id="ai_purpose" placeholder="예: 썸네일 이미지와 배경음악 아이디어 생성" oninput="autoSave()"></td>
-                </tr>
-                <tr>
-                    <th>만든 자료 / 요청한 내용</th>
-                    <td><textarea id="ai_prompt" placeholder="예: 썸네일용 배경 이미지 — 따뜻한 카페 창가를 그려 달라고 요청" oninput="handleTextareaInput(this)"></textarea></td>
-                </tr>
-                <tr>
-                    <th>사용 및 출처 메모</th>
-                    <td><textarea id="ai_rights" placeholder="수정한 내용, 출처 표기 필요 여부, 수업 제출 시 참고할 사항을 적어보세요." oninput="handleTextareaInput(this)"></textarea></td>
-                </tr>
-            </table>
-        </div>
-
         </section>
 
         <!-- 4. 무드보드 및 톤앤매너 -->
         <section class="print-section">
-        <h2>4. 편집 느낌과 참고 자료</h2>
+        <h2>4. 톤앤매너 / 편집 느낌과 참고 자료</h2>
         <div class="print-block">
-            <div class="section-subtitle"><label for="editing_plan">✂️ 이렇게 편집하고 싶어요</label></div>
+            <div class="section-subtitle"><label for="editing_plan">✂️ 편집 방향 / 이렇게 편집하고 싶어요</label></div>
             <textarea id="editing_plan" placeholder="예: 음악 박자에 맞춰 장면을 바꾸고, 장소 이름은 큰 자막으로 넣는다. 장면 전환은 부드럽게 하고 색은 따뜻하게 맞춘다." oninput="handleTextareaInput(this)"></textarea>
         </div>
         
         <div class="print-block print-block--grid yt-reference-block">
         <div class="section-subtitle">
-            <span class="section-title-content">🎥 참고할 영상 (유튜브 링크) <span class="help-tip" tabindex="0" role="img" aria-label="참고 영상 도움말" data-tooltip="장면이 바뀌는 속도, 자막, 음악 등 내 영상에 참고하고 싶은 영상의 유튜브 주소를 넣으세요. 참고하는 것과 영상을 가져다 사용하는 것은 달라요.">?</span></span>
+            <span class="section-title-content">🎥 영상 레퍼런스 / 참고할 영상 <span class="help-tip" tabindex="0" role="img" aria-label="참고 영상 도움말" data-tooltip="장면이 바뀌는 속도, 자막, 음악 등 내 영상에 참고하고 싶은 영상의 유튜브 주소를 넣으세요. 참고하는 것과 영상을 가져다 사용하는 것은 달라요.">?</span></span>
             <nav class="resource-links" aria-label="영상 레퍼런스 사이트">
                 <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" title="YouTube - 영상 레퍼런스"><img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" alt="YouTube"></a>
                 <a href="https://vimeo.com/" target="_blank" rel="noopener noreferrer" title="Vimeo - 영상 레퍼런스"><img src="https://www.google.com/s2/favicons?domain=vimeo.com&sz=64" alt="Vimeo"></a>
@@ -829,7 +829,7 @@
         </div>
 
         <div class="print-block">
-        <div class="section-subtitle"><label for="keyword_input">✨ 영상의 분위기 (짧은 단어)</label></div>
+        <div class="section-subtitle"><label for="keyword_input">✨ 무드 키워드 / 영상의 분위기</label></div>
         <div class="tag-container" id="tag_container" onclick="document.getElementById('keyword_input').focus()">
             <input type="text" class="tag-input" id="keyword_input" placeholder="#키워드 입력 후 Enter (예: 감성적인, 힐링)" onkeydown="handleTagInput(event)" oncompositionstart="handleTagCompositionStart()" oncompositionend="handleTagCompositionEnd()">
         </div>
@@ -838,7 +838,7 @@
 
         <div class="print-block">
         <div class="section-subtitle">
-            <span class="section-title-content">🎨 사용할 색 <span class="help-tip" tabindex="0" role="img" aria-label="색 선택 도움말" data-tooltip="자막과 썸네일에 쓸 색을 정해보세요. 색 코드는 포토샵의 색상 선택 창에서 복사할 수 있어요. 다섯 칸을 모두 채울 필요는 없습니다.">?</span></span>
+            <span class="section-title-content">🎨 컬러 팔레트 / 사용할 색 <span class="help-tip" tabindex="0" role="img" aria-label="색 선택 도움말" data-tooltip="자막과 썸네일에 쓸 색을 정해보세요. 색 코드는 포토샵의 색상 선택 창에서 복사할 수 있어요. 다섯 칸을 모두 채울 필요는 없습니다.">?</span></span>
             <div class="section-subtitle-actions">
                 <nav class="resource-links" aria-label="컬러 팔레트 참고 사이트">
                     <a href="https://coolors.co/" target="_blank" rel="noopener noreferrer" title="Coolors - 컬러 팔레트 생성기"><img src="https://www.google.com/s2/favicons?domain=coolors.co&sz=64" alt="Coolors"></a>
@@ -890,7 +890,7 @@
 
         <div class="print-block">
         <div class="section-subtitle">
-            <span>🔤 사용할 글꼴</span>
+            <span>🔤 타이포그래피 / 사용할 글꼴</span>
             <nav class="resource-links" aria-label="서체 다운로드 사이트">
                 <a href="https://noonnu.cc/" target="_blank" rel="noopener noreferrer" title="눈누 - 한글 폰트"><img src="https://www.google.com/s2/favicons?domain=noonnu.cc&sz=64" alt="눈누"></a>
                 <a href="https://fonts.google.com/" target="_blank" rel="noopener noreferrer" title="Google Fonts - 영문 및 다국어 폰트"><img src="https://www.google.com/s2/favicons?domain=fonts.google.com&sz=64" alt="Google Fonts"></a>
@@ -934,7 +934,7 @@
 
         <div class="print-block print-block--grid">
         <div class="section-subtitle">
-            <span>🖼️ 참고할 이미지</span>
+            <span>🖼️ 레퍼런스 / 참고할 이미지</span>
             <nav class="resource-links moodboard-links" aria-label="이미지 레퍼런스 참고 사이트">
                 <a class="resource-link-special" href="https://chromewebstore.google.com/detail/screenshot-youtube/gjoijpfmdhbjkkgnmahganhoinjjpohk" target="_blank" rel="noopener noreferrer" title="Screenshot YouTube - 유튜브 화면 캡처 확장 프로그램"><img src="https://www.google.com/s2/favicons?domain=chromewebstore.google.com&sz=64" alt="Screenshot YouTube"></a>
                 <span class="resource-links-divider" aria-hidden="true"></span>
@@ -954,10 +954,10 @@
 
         <!-- 5. 오디오 전략 -->
         <section class="print-section">
-        <h2>5. 음악과 목소리</h2>
+        <h2>5. 오디오 계획 / 음악과 목소리</h2>
         <div class="print-block">
             <div class="section-subtitle">
-                <span class="section-title-content">🔊 어떤 소리를 넣을까요? <span class="help-tip" tabindex="0" role="img" aria-label="음악과 목소리 도움말" data-tooltip="음악의 분위기와 설명 목소리를 넣을지 적어보세요. 음악이나 목소리가 필요 없다면 ‘사용하지 않음’으로 적어도 됩니다.">?</span></span>
+                <span class="section-title-content">🔊 사운드 구성 / 사용할 소리 <span class="help-tip" tabindex="0" role="img" aria-label="음악과 목소리 도움말" data-tooltip="음악의 분위기와 설명 목소리를 넣을지 적어보세요. 음악이나 목소리가 필요 없다면 ‘사용하지 않음’으로 적어도 됩니다.">?</span></span>
                 <nav class="resource-links" aria-label="오디오 참고 사이트">
                     <a href="https://www.youtube.com/audiolibrary" target="_blank" rel="noopener noreferrer" title="YouTube Audio Library - 유튜브 오디오 보관함"><img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" alt="YouTube Audio Library"></a>
                     <a href="https://www.youtube.com/channel/UCMC-8sRR27Q_BlE6wU1M3vQ" target="_blank" rel="noopener noreferrer" title="NCS - NoCopyrightSounds 공식 채널"><img src="https://yt3.googleusercontent.com/bv2KtzpKP-Lb-O04zEO62UO3gzQfFCVfacLx33MqT2IG5LBtC-gA6q7Lv6HH79Az7Fhr-fjghg=s900-c-k-c0x00ffffff-no-rj" alt="NCS"></a>
@@ -999,24 +999,24 @@
 
         <!-- 6. 썸네일 레퍼런스 -->
         <section class="print-section">
-        <h2>6. 썸네일과 영상 제목</h2>
+        <h2>6. 썸네일·타이틀 / 이미지와 제목 계획</h2>
         <p class="field-help">포토샵에서 만들 썸네일을 생각해 보세요. 실제 유튜브 업로드는 하지 않아도 됩니다.</p>
         <div class="print-block">
-        <div class="section-subtitle"><label for="youtube_title">📺 시청자에게 보여줄 영상 제목</label></div>
+        <div class="section-subtitle"><label for="youtube_title">📺 영상 타이틀 / 시청자에게 보여줄 제목</label></div>
         <textarea id="youtube_title" class="short-field" rows="1" placeholder="예: 공부하기 좋은 조용한 카페를 소개합니다" oninput="handleTextareaInput(this)"></textarea>
         <p class="field-help">1번의 기획안 제목과 같아도 괜찮아요.</p>
         </div>
         <div class="print-block">
-            <div class="section-subtitle"><label for="thumbnail_text">🔤 썸네일에 넣을 짧은 문구</label></div>
+            <div class="section-subtitle"><label for="thumbnail_text">🔤 썸네일 카피 / 이미지에 넣을 짧은 문구</label></div>
             <textarea id="thumbnail_text" class="short-field" rows="1" placeholder="예: 나만 알고 싶은 조용한 카페" oninput="handleTextareaInput(this)"></textarea>
         </div>
         <div class="print-block">
-            <div class="section-subtitle"><label for="thumbnail_plan">🖼️ 썸네일의 이미지와 글자 배치</label></div>
+            <div class="section-subtitle"><label for="thumbnail_plan">🖼️ 썸네일 레이아웃 / 이미지와 글자 배치</label></div>
             <textarea id="thumbnail_plan" placeholder="예: 오른쪽에 커피 사진을 크게 놓고, 왼쪽에는 짙은 글자로 문구를 넣는다. 배경은 밝게, 글자는 작은 화면에서도 읽히게 만든다." oninput="handleTextareaInput(this)"></textarea>
         </div>
         
         <div class="print-block print-block--grid">
-        <div class="section-subtitle"><span>🖼️ 참고할 썸네일</span></div>
+        <div class="section-subtitle"><span>🖼️ 썸네일 레퍼런스 / 참고할 썸네일</span></div>
         <div class="grid-container" id="grid_thumb">
             <!-- 동적 이미지 슬롯 생성 -->
         </div>
