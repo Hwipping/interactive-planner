@@ -179,6 +179,9 @@
     .reference-card.drag-over { border-color: #868e96; box-shadow: 0 0 0 3px rgba(108, 117, 125, .16); }
     .reference-card.is-filled .box-item { border-style: solid; }
     .reference-card .box-item { width: 100%; }
+    .thumbnail-youtube-url { width: 100%; min-height: 36px; padding: 7px 9px; border: 1px solid #d7dce0; border-radius: 5px; background: #fff; color: #343a40; font: inherit; font-size: .82rem; box-sizing: border-box; }
+    .thumbnail-youtube-url:focus { outline: none; border-color: #868e96; box-shadow: 0 0 0 3px rgba(108, 117, 125, .12); }
+    .thumbnail-youtube-url::placeholder { color: #adb5bd; }
     .reference-memo { width: 100%; min-height: 58px; padding: 8px 9px; border: 1px solid #d7dce0; border-radius: 5px; background: #fff; color: #343a40; font: inherit; font-size: .82rem; line-height: 1.45; resize: vertical; box-sizing: border-box; }
     .reference-memo::placeholder { color: #adb5bd; }
     .reference-memo:focus { outline: none; border-color: #868e96; box-shadow: 0 0 0 3px rgba(108, 117, 125, .12); }
@@ -278,7 +281,7 @@
     }
 
     @media print {
-        .toolbar, .btn-bg-upload, .btn-remove, .btn-download-palette, .resource-links { display: none !important; }
+        .toolbar, .btn-bg-upload, .btn-remove, .btn-download-palette, .resource-links, .thumbnail-youtube-url { display: none !important; }
         body {
             background: white;
             padding: 0;
@@ -1944,7 +1947,9 @@
                 const items = Array.isArray(grids[prefix]) ? grids[prefix] : [];
                 items.forEach((item) => {
                     const asset = remoteState.assetByKey[item.assetKey];
-                    createImageSlot(container, prefix, item.memo || '', asset?.url || '', item.id || '');
+                    const youtubeUrl = prefix === 'tref' ? (item.youtubeUrl || '') : '';
+                    const thumbnailUrl = asset?.url || item.src || (youtubeUrl ? getYoutubeThumbnailUrl(youtubeUrl) : '');
+                    createImageSlot(container, prefix, item.memo || '', thumbnailUrl, item.id || '', youtubeUrl, item.assetKey || '');
                 });
                 ensureTrailingReferenceSlot(container, prefix);
             });
@@ -1997,11 +2002,23 @@
                 const container = getGridContainer(prefix);
                 grids[prefix] = Array.from(container?.querySelectorAll('.reference-card') || []).map((card) => {
                     const box = card.querySelector('.box-item');
-                    return {
+                    const youtubeInput = card.querySelector('.thumbnail-youtube-url');
+                    const typedYoutubeUrl = youtubeInput?.value.trim() || '';
+                    const youtubeUrl = youtubeInput?.dataset.youtubePending === 'true' || !getYoutubeVideoId(typedYoutubeUrl)
+                        ? (youtubeInput?.dataset.savedYoutubeUrl || '')
+                        : typedYoutubeUrl;
+                    const videoId = getYoutubeVideoId(youtubeUrl);
+                    const item = {
                         id: box?.id || '',
                         memo: card.querySelector('.reference-memo')?.value || '',
-                        assetKey: box?.querySelector('img') ? box.id : ''
+                        assetKey: box?.querySelector('img')
+                            ? (videoId
+                                ? (box.dataset.youtubeThumbnail === 'true' && box.dataset.youtubeVideoId === videoId ? (box.dataset.assetKey || '') : '')
+                                : (box.dataset.youtubeThumbnail === 'true' ? '' : (box.dataset.assetKey || box.id)))
+                            : ''
                     };
+                    if (prefix === 'tref' && videoId) item.youtubeUrl = youtubeUrl;
+                    return item;
                 });
             });
             const youtube = Array.from(document.querySelectorAll('#grid_yt_ref .box-wrapper')).map((wrap) => {
@@ -2039,7 +2056,8 @@
                 const container = getGridContainer(prefix);
                 for (const card of Array.from(container?.querySelectorAll('.reference-card.is-filled') || [])) {
                     const box = card.querySelector('.box-item');
-                    await upload(box, box?.id, prefix === 'mood' ? 'reference' : 'thumbnail');
+                    if (prefix === 'tref' && card.querySelector('.thumbnail-youtube-url')?.dataset.youtubePending === 'true') continue;
+                    await upload(box, box?.dataset.assetKey || box?.id, prefix === 'mood' ? 'reference' : 'thumbnail');
                 }
             }
             for (const id of ['typo_main', 'typo_sub', 'typo_cap', 'typo_point']) {
@@ -2467,7 +2485,7 @@
         function wireReferenceCard(card, prefix) {
             card.draggable = true;
             card.addEventListener('dragstart', (e) => {
-                if (!card.classList.contains('is-filled') || e.target.closest('textarea, button')) {
+                if (!card.classList.contains('is-filled') || e.target.closest('textarea, input, button')) {
                     e.preventDefault();
                     return;
                 }
@@ -2483,9 +2501,32 @@
                 await saveGridData(prefix);
                 autoSave();
             });
+            const youtubeInput = card.querySelector('.thumbnail-youtube-url');
+            if (youtubeInput && youtubeInput.dataset.youtubeReady !== 'true') {
+                youtubeInput.dataset.youtubeReady = 'true';
+                const scheduleImport = () => {
+                    youtubeInput.dataset.youtubePending = 'true';
+                    clearTimeout(youtubeInput._youtubeTimer);
+                    youtubeInput._youtubeTimer = setTimeout(() => {
+                        void loadThumbnailReference(youtubeInput, card, true);
+                    }, 450);
+                };
+                youtubeInput.addEventListener('input', scheduleImport);
+                youtubeInput.addEventListener('paste', () => setTimeout(scheduleImport, 0));
+                youtubeInput.addEventListener('change', () => {
+                    clearTimeout(youtubeInput._youtubeTimer);
+                    void loadThumbnailReference(youtubeInput, card);
+                });
+                youtubeInput.addEventListener('keydown', (event) => {
+                    if (event.key !== 'Enter') return;
+                    event.preventDefault();
+                    clearTimeout(youtubeInput._youtubeTimer);
+                    void loadThumbnailReference(youtubeInput, card);
+                });
+            }
         }
 
-        function createImageSlot(container, prefix, memo = '', src = '', fixedId = '') {
+        function createImageSlot(container, prefix, memo = '', src = '', fixedId = '', youtubeUrl = '', assetKey = '') {
             initializeReferenceGrid(container, prefix);
             const id = fixedId || (prefix + '_' + Date.now() + Math.floor(Math.random() * 1000));
             const card = document.createElement('div');
@@ -2496,8 +2537,22 @@
             box.className = 'box-item';
             box.id = id;
             box.setAttribute('onclick', `openFileSelector('${id}')`);
+            if (assetKey) box.dataset.assetKey = assetKey;
+            if (youtubeUrl && src) box.dataset.youtubeThumbnail = 'true';
+            if (youtubeUrl) box.dataset.youtubeVideoId = getYoutubeVideoId(youtubeUrl);
             renderImageSlot(box, id, prefix, src);
             card.appendChild(box);
+
+            if (prefix === 'tref') {
+                const youtubeInput = document.createElement('input');
+                youtubeInput.type = 'url';
+                youtubeInput.className = 'thumbnail-youtube-url';
+                youtubeInput.setAttribute('aria-label', '썸네일 레퍼런스 유튜브 URL');
+                youtubeInput.placeholder = '유튜브 URL을 붙여넣으면 썸네일이 표시됩니다.';
+                youtubeInput.value = youtubeUrl;
+                if (getYoutubeVideoId(youtubeUrl)) youtubeInput.dataset.savedYoutubeUrl = youtubeUrl;
+                card.appendChild(youtubeInput);
+            }
 
             const memoInput = document.createElement('textarea');
             memoInput.className = 'reference-memo';
@@ -2683,12 +2738,23 @@
             const container = getGridContainer(prefix);
             if (!container) return;
             const items = Array.from(container.querySelectorAll('.reference-card'))
-                .map((card) => ({
-                    id: card.id.replace('refcard_', ''),
-                    src: card.querySelector('.has-img img')?.src || '',
-                    memo: card.querySelector('.reference-memo')?.value || ''
-                }))
-                .filter((item) => item.src);
+                .map((card) => {
+                    const item = {
+                        id: card.id.replace('refcard_', ''),
+                        src: card.querySelector('.has-img img')?.src || '',
+                        memo: card.querySelector('.reference-memo')?.value || ''
+                    };
+                    if (prefix === 'tref') {
+                        const youtubeInput = card.querySelector('.thumbnail-youtube-url');
+                        const typedUrl = youtubeInput?.value.trim() || '';
+                        item.youtubeUrl = youtubeInput?.dataset.youtubePending === 'true' || !getYoutubeVideoId(typedUrl)
+                            ? (youtubeInput?.dataset.savedYoutubeUrl || '')
+                            : typedUrl;
+                        item.assetKey = card.querySelector('.box-item')?.dataset.assetKey || '';
+                    }
+                    return item;
+                })
+                .filter((item) => item.src || item.youtubeUrl || item.memo);
             await ImageStorage.set(GRID_STORAGE_PREFIX + prefix, items);
         }
 
@@ -2811,7 +2877,7 @@
                 container.innerHTML = '';
                 saved.forEach((item) => {
                     const normalized = typeof item === 'string' ? { src: item, memo: '' } : item;
-                    createImageSlot(container, prefix, normalized.memo || '', normalized.src || '');
+                    createImageSlot(container, prefix, normalized.memo || '', normalized.src || '', normalized.id || '', normalized.youtubeUrl || '', normalized.assetKey || '');
                 });
                 createImageSlot(container, prefix);
             } else {
@@ -2839,7 +2905,10 @@
         function getYoutubeVideoId(value) {
             const text = String(value || '').trim();
             try {
-                const url = new URL(text);
+                const normalized = text.startsWith('//')
+                    ? `https:${text}`
+                    : (/^[a-z][a-z\d+.-]*:\/\//i.test(text) ? text : `https://${text}`);
+                const url = new URL(normalized);
                 const host = url.hostname.toLowerCase().replace(/^www\./, '');
                 if (host === 'youtu.be') return url.pathname.split('/').filter(Boolean)[0]?.match(/^[\w-]{11}$/)?.[0] || '';
                 if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com') {
@@ -2847,10 +2916,82 @@
                     if (queryId && /^[\w-]{11}$/.test(queryId)) return queryId;
                     return url.pathname.match(/^\/(?:shorts|embed|live)\/([\w-]{11})(?:\/|$)/)?.[1] || '';
                 }
-            } catch {
-                // Keep compatibility with pasted YouTube URLs that omit a scheme.
+            } catch {}
+            return '';
+        }
+
+        function getYoutubeThumbnailUrl(value) {
+            const videoId = getYoutubeVideoId(value);
+            return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : '';
+        }
+
+        async function loadThumbnailReference(input, card, quietInvalid = false) {
+            const url = input.value.trim();
+            const videoId = getYoutubeVideoId(url);
+            const box = card.querySelector('.box-item');
+            const sequence = Number(input.dataset.importSequence || 0) + 1;
+            input.dataset.importSequence = String(sequence);
+            input.dataset.youtubePending = 'false';
+
+            if (!url) {
+                if (box.dataset.youtubeThumbnail === 'true') {
+                    renderImageSlot(box, box.id, 'tref');
+                    delete box.dataset.youtubeThumbnail;
+                    delete box.dataset.youtubeVideoId;
+                    delete box.dataset.assetKey;
+                    delete input.dataset.savedYoutubeUrl;
+                    card.classList.remove('is-filled');
+                    ensureTrailingReferenceSlot(card.parentElement, 'tref');
+                }
+                await saveGridData('tref');
+                autoSave();
+                return;
             }
-            return text.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/)?.[1] || '';
+
+            if (!videoId) {
+                input.dataset.youtubePending = 'false';
+                if (!quietInvalid) setSaveStatus('유튜브 영상 주소를 확인해 주세요.');
+                return;
+            }
+
+            const thumbnailUrl = getYoutubeThumbnailUrl(url);
+            input.dataset.savedYoutubeUrl = url;
+            box.dataset.youtubeThumbnail = 'true';
+            box.dataset.youtubeVideoId = videoId;
+            delete box.dataset.assetKey;
+            renderImageSlot(box, box.id, 'tref', thumbnailUrl);
+            card.classList.add('is-filled');
+            ensureTrailingReferenceSlot(card.parentElement, 'tref');
+            await saveGridData('tref');
+            autoSave();
+
+            const projectId = remoteState.project?.id;
+            const token = remoteState.token;
+            if (!projectId || !token) return;
+
+            const logicalKey = `ytthumb_ref_${box.id}`;
+            try {
+                const asset = await remoteApi('import-youtube-thumbnail', { projectId, logicalKey, videoId }, token);
+                if (remoteState.project?.id !== projectId) return;
+                if (input.dataset.importSequence !== String(sequence) || getYoutubeVideoId(input.value) !== videoId) {
+                    const currentVideoId = getYoutubeVideoId(input.value);
+                    if (currentVideoId && Number(input.dataset.importSequence) === sequence) void loadThumbnailReference(input, card);
+                    return;
+                }
+                remoteState.assetByKey[logicalKey] = {
+                    logical_key: logicalKey,
+                    storage_path: asset.storagePath,
+                    kind: asset.kind,
+                    url: asset.url
+                };
+                box.dataset.assetKey = logicalKey;
+                renderImageSlot(box, box.id, 'tref', asset.url);
+                card.classList.add('is-filled');
+                await saveGridData('tref');
+                autoSave();
+            } catch (error) {
+                console.warn('썸네일 레퍼런스 이미지를 서버에 저장하지 못했습니다.', error);
+            }
         }
 
         async function backfillYoutubeThumbnails(projectId, token, items) {
