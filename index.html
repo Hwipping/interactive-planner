@@ -1950,11 +1950,15 @@
             });
 
             const ytContainer = document.getElementById('grid_yt_ref');
+            const youtubeNeedingThumbnails = [];
             if (ytContainer) {
                 ytContainer.innerHTML = '';
                 const youtube = Array.isArray(payload.project?.content?.youtube) ? payload.project.content.youtube : [];
                 youtube.forEach((item) => {
-                    const asset = remoteState.assetByKey[item.assetKey];
+                    const logicalKey = item.assetKey || `ytthumb_${item.id}`;
+                    const asset = remoteState.assetByKey[logicalKey] || remoteState.assetByKey[`ytthumb_${item.id}`];
+                    const videoId = getYoutubeVideoId(item.url || '');
+                    if (!asset?.url && item.id && videoId) youtubeNeedingThumbnails.push({ id: item.id, videoId });
                     ytContainer.appendChild(createYtBox(item.id, 'ytref', {
                         title: item.title || '',
                         url: item.url || '',
@@ -1977,6 +1981,9 @@
             remoteState.loading = false;
             updateDocumentMeta();
             setSaveStatus(`${remoteState.admin ? '관리자 모드' : '편집 모드'} · 불러오기 완료`);
+            if (youtubeNeedingThumbnails.length && remoteState.project?.id) {
+                void backfillYoutubeThumbnails(remoteState.project.id, remoteState.token, youtubeNeedingThumbnails);
+            }
         }
 
         function collectRemoteContent() {
@@ -1997,13 +2004,19 @@
                     };
                 });
             });
-            const youtube = Array.from(document.querySelectorAll('#grid_yt_ref .box-wrapper')).map((wrap) => ({
-                id: wrap.id.replace('wrap_', ''),
-                title: wrap.querySelector('.yt-title-input')?.value || '',
-                url: wrap.querySelector('.yt-url-input')?.value || '',
-                assetKey: wrap.querySelector('img') ? `ytthumb_${wrap.id.replace('wrap_', '')}` : '',
-                thumbUrl: wrap.querySelector('img')?.src || ''
-            })).filter((item) => item.title || item.url || item.thumbUrl);
+            const youtube = Array.from(document.querySelectorAll('#grid_yt_ref .box-wrapper')).map((wrap) => {
+                const id = wrap.id.replace('wrap_', '');
+                const logicalKey = `ytthumb_${id}`;
+                const imageSrc = wrap.querySelector('img')?.src || '';
+                const hasStoredAsset = Boolean(remoteState.assetByKey[logicalKey]?.storage_path);
+                return {
+                    id,
+                    title: wrap.querySelector('.yt-title-input')?.value || '',
+                    url: wrap.querySelector('.yt-url-input')?.value || '',
+                    assetKey: hasStoredAsset || imageSrc.startsWith('data:') ? logicalKey : '',
+                    thumbUrl: hasStoredAsset ? '' : imageSrc
+                };
+            }).filter((item) => item.title || item.url || item.thumbUrl);
             const typography = {};
             ['typo_main', 'typo_sub', 'typo_cap', 'typo_point'].forEach((id) => {
                 typography[id] = document.getElementById(id)?.querySelector('img') ? id : '';
@@ -2823,8 +2836,51 @@
             }
         }
 
+        function getYoutubeVideoId(value) {
+            const text = String(value || '').trim();
+            try {
+                const url = new URL(text);
+                const host = url.hostname.toLowerCase().replace(/^www\./, '');
+                if (host === 'youtu.be') return url.pathname.split('/').filter(Boolean)[0]?.match(/^[\w-]{11}$/)?.[0] || '';
+                if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com') {
+                    const queryId = url.searchParams.get('v');
+                    if (queryId && /^[\w-]{11}$/.test(queryId)) return queryId;
+                    return url.pathname.match(/^\/(?:shorts|embed|live)\/([\w-]{11})(?:\/|$)/)?.[1] || '';
+                }
+            } catch {
+                // Keep compatibility with pasted YouTube URLs that omit a scheme.
+            }
+            return text.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/)?.[1] || '';
+        }
+
+        async function backfillYoutubeThumbnails(projectId, token, items) {
+            let repaired = false;
+            for (const item of items) {
+                if (remoteState.project?.id !== projectId) return;
+                const logicalKey = `ytthumb_${item.id}`;
+                if (remoteState.assetByKey[logicalKey]?.url) continue;
+                try {
+                    const asset = await remoteApi('import-youtube-thumbnail', { projectId, logicalKey, videoId: item.videoId }, token);
+                    if (remoteState.project?.id !== projectId) return;
+                    remoteState.assetByKey[logicalKey] = {
+                        logical_key: logicalKey,
+                        storage_path: asset.storagePath,
+                        kind: asset.kind,
+                        url: asset.url
+                    };
+                    renderYtPreview(item.id, 'ytref', asset.url);
+                    repaired = true;
+                } catch (error) {
+                    console.warn('유튜브 썸네일을 다시 저장하지 못했습니다.', error);
+                }
+            }
+            if (repaired && remoteState.project?.id === projectId && remoteState.token === token) {
+                autoSave();
+            }
+        }
+
         async function fetchYtData(input, id, prefix) {
-            const vid = input.value.match(/(?:v=|be\/|shorts\/)([\w-]{11})/)?.[1];
+            const vid = getYoutubeVideoId(input.value);
             if (!vid) {
                 renderYtPreview(id, prefix);
                 document.getElementById('yt_title_' + id).value = '';
@@ -2843,8 +2899,30 @@
                 console.warn('유튜브 정보를 가져오지 못했습니다.', error);
             }
 
-            const embeddedThumb = await fetchImageAsDataUrl(thumbUrl);
-            if (embeddedThumb) renderYtPreview(id, prefix, embeddedThumb);
+            if (remoteState.project?.id && remoteState.token) {
+                try {
+                    const logicalKey = `ytthumb_${id}`;
+                    const asset = await remoteApi('import-youtube-thumbnail', {
+                        projectId: remoteState.project.id,
+                        logicalKey,
+                        videoId: vid
+                    }, remoteState.token);
+                    remoteState.assetByKey[logicalKey] = {
+                        logical_key: logicalKey,
+                        storage_path: asset.storagePath,
+                        kind: asset.kind,
+                        url: asset.url
+                    };
+                    renderYtPreview(id, prefix, asset.url);
+                } catch (error) {
+                    console.warn('유튜브 썸네일을 서버 저장소에 저장하지 못했습니다.', error);
+                    const embeddedThumb = await fetchImageAsDataUrl(thumbUrl);
+                    if (embeddedThumb) renderYtPreview(id, prefix, embeddedThumb);
+                }
+            } else {
+                const embeddedThumb = await fetchImageAsDataUrl(thumbUrl);
+                if (embeddedThumb) renderYtPreview(id, prefix, embeddedThumb);
+            }
 
             const wrap = document.getElementById('wrap_' + id);
             await saveYtGridData(prefix);
