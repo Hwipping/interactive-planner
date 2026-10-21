@@ -403,14 +403,16 @@
     .project-card { min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; color: #343a40; }
     .project-card:focus-visible { outline: 3px solid #1864ab; outline-offset: 7px; border-radius: 12px; }
     .project-card:hover .project-cover { transform: translateY(-4px); box-shadow: 0 14px 22px rgba(33, 37, 41, .16); }
-    .project-cover { position: relative; aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #d7dce0; border-radius: 12px; background: linear-gradient(145deg, #f8f9fa, #e9ecef); box-shadow: 0 5px 12px rgba(33, 37, 41, .08); transition: transform .18s ease, box-shadow .18s ease; }
-    .project-cover img { width: 100%; height: 100%; object-fit: cover; }
-    .project-cover .empty-cover { font-size: 2.8rem; opacity: .55; }
-    .project-status { position: absolute; top: 10px; left: 10px; width: 12px; height: 12px; border-radius: 50%; border: 3px solid white; box-shadow: 0 1px 5px rgba(0,0,0,.18); }
-    .project-status.working { background: #f08c46; }
-    .project-status.complete { background: #37b679; }
-    .project-card-title { display: block; overflow: hidden; margin-top: 10px; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
-    .project-card-meta { display: block; margin-top: 3px; color: #868e96; font-size: .78rem; }
+    .project-cover { position: relative; aspect-ratio: 4 / 3; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 14px; overflow: hidden; box-sizing: border-box; padding: 15px; border: 1px solid #d7dce0; border-radius: 12px; background: linear-gradient(145deg, #f8f9fa, #e9ecef); box-shadow: 0 5px 12px rgba(33, 37, 41, .08); transition: transform .18s ease, box-shadow .18s ease; }
+    .project-cover-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .project-cover-icon { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border-radius: 8px; background: #edf0f2; font-size: 1rem; line-height: 1; }
+    .project-status { position: static; display: inline-flex; align-items: center; gap: 7px; width: auto; height: auto; border: 0; border-radius: 0; box-shadow: none; color: #59636c; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+    .project-status::before { content: ''; width: 10px; height: 10px; flex: 0 0 auto; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 1px 5px rgba(0,0,0,.18); }
+    .project-status.working::before { background: #f08c46; }
+    .project-status.complete::before { background: #37b679; }
+    .project-cover-copy { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 5px; margin-top: auto; }
+    .project-card-name { display: block; color: #59636c; font-size: .82rem; font-weight: 600; }
+    .project-card-title { display: -webkit-box; overflow: hidden; margin: 0; color: #343a40; font-size: 1rem; font-weight: 700; line-height: 1.45; white-space: normal; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
     .empty-projects { grid-column: 1 / -1; padding: 70px 20px; color: #868e96; text-align: center; }
     .home-error { grid-column: 1 / -1; padding: 20px; border-radius: 10px; background: #fff4e6; color: #c76b16; }
     .app-button { color: white; border: 0; border-radius: 9px; padding: 11px 16px; font-weight: 700; cursor: pointer; transition: transform .15s ease, filter .15s ease; }
@@ -1567,34 +1569,37 @@
                 const card = document.createElement('button');
                 card.type = 'button';
                 card.className = 'project-card';
-                card.setAttribute('aria-label', `${project.student_name || '이름 없음'}의 ${project.title || '새 기획안'} 열기`);
+                const studentName = project.student_name || '이름 없음';
+                const projectTitle = project.title || '새 기획안';
+                const statusLabel = project.status === 'complete' ? '완성' : '작업중';
+                card.setAttribute('aria-label', studentName + ' - ' + projectTitle + ' · ' + statusLabel + ' · 열기');
                 card.addEventListener('click', () => openExistingProject(project.id));
 
                 const cover = document.createElement('span');
                 cover.className = 'project-cover';
+                const coverTop = document.createElement('span');
+                coverTop.className = 'project-cover-top';
                 const status = document.createElement('span');
-                status.className = `project-status ${project.status === 'complete' ? 'complete' : 'working'}`;
-                status.title = project.status === 'complete' ? '완성' : '작업중';
-                cover.appendChild(status);
-                if (project.cover_url) {
-                    const image = document.createElement('img');
-                    image.src = project.cover_url;
-                    image.alt = '기획안 대표 이미지';
-                    cover.appendChild(image);
-                } else {
-                    const emptyCover = document.createElement('span');
-                    emptyCover.className = 'empty-cover';
-                    emptyCover.textContent = '📝';
-                    cover.appendChild(emptyCover);
-                }
+                status.className = project.status === 'complete' ? 'project-status complete' : 'project-status working';
+                status.textContent = statusLabel;
+                coverTop.appendChild(status);
+                const coverIcon = document.createElement('span');
+                coverIcon.className = 'project-cover-icon';
+                coverIcon.setAttribute('aria-hidden', 'true');
+                coverIcon.textContent = '📝';
+                coverTop.appendChild(coverIcon);
 
+                const coverCopy = document.createElement('span');
+                coverCopy.className = 'project-cover-copy';
+                const name = document.createElement('span');
+                name.className = 'project-card-name';
+                name.textContent = studentName;
                 const title = document.createElement('span');
                 title.className = 'project-card-title';
-                title.textContent = `${project.student_name || '이름 없음'} - ${project.title || '새 기획안'}`;
-                const meta = document.createElement('span');
-                meta.className = 'project-card-meta';
-                meta.textContent = project.status === 'complete' ? '완성' : '작업중';
-                card.append(cover, title, meta);
+                title.textContent = projectTitle;
+                coverCopy.append(name, title);
+                cover.append(coverTop, coverCopy);
+                card.appendChild(cover);
                 grid.appendChild(card);
             });
         }
