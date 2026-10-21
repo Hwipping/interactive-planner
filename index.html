@@ -1338,9 +1338,9 @@
             makeImageSlotAccessible(box, '참고 이미지', () => openFileSelector(id));
         }
 
-        function renderYtPreview(id, prefix, thumbSrc = '') {
-            const thumbWrap = document.getElementById('thumb_wrap_' + id);
-            const wrap = document.getElementById('wrap_' + id);
+        function renderYtPreview(id, prefix, thumbSrc = '', previewElement = null, wrapperElement = null) {
+            const thumbWrap = previewElement || document.getElementById('thumb_wrap_' + id);
+            const wrap = wrapperElement || document.getElementById('wrap_' + id);
             if (!thumbWrap) return;
 
             thumbWrap.textContent = '';
@@ -1356,8 +1356,8 @@
                 thumbWrap.appendChild(label);
                 thumbWrap.classList.remove('has-data');
             }
-            const titleInput = document.getElementById('yt_title_' + id);
-            const urlInput = document.getElementById('yt_url_' + id);
+            const titleInput = wrap?.querySelector('.yt-title-input') || document.getElementById('yt_title_' + id);
+            const urlInput = wrap?.querySelector('.yt-url-input') || document.getElementById('yt_url_' + id);
             if (wrap) wrap.classList.toggle('is-filled', Boolean(thumbSrc || titleInput?.value || urlInput?.value));
 
             thumbWrap.appendChild(buildActionButton('삭제', `removeYtBox(event, '${id}', '${prefix}')`, 'btn-remove'));
@@ -1397,7 +1397,7 @@
 
             inputs.append(titleInput, urlInput);
             div.append(thumbWrap, inputs);
-            renderYtPreview(id, prefix, data.thumb || '');
+            renderYtPreview(id, prefix, data.thumb || '', thumbWrap, div);
             return div;
         }
 
